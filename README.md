@@ -13,7 +13,7 @@
 - Local Font Access APIに対応したChromium系ブラウザ（Google Chrome、Microsoft Edge、Braveなど）
 
 ## 使い方
-1. `docs/index.html` を対応ブラウザで開きます。
+1. `docs/index.html` を対応ブラウザで開くか、[GitHub Pages版](https://mug-lab-3.github.io/font2svg/)にアクセスします。
 2. 「ローカルフォントを表示」をクリックし、表示された一覧からフォントを選択します。
 3. テキストと各種設定（小数桁、描画モード、線幅、空白除外）を調整します。
 4. 「SVGを生成」を押すと、各文字のプレビューが表示されます。
