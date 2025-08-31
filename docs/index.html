@@ -456,7 +456,7 @@
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
 
-        // ZIP名：日時とフォント名（安全化）を付与
+        // ZIP名：日時とフォント名（安全化、空白はハイフンに変換）を付与
         const dt = new Date();
         const y = dt.getFullYear();
         const m = String(dt.getMonth()+1).padStart(2,'0');
@@ -464,7 +464,8 @@
         const hh = String(dt.getHours()).padStart(2,'0');
         const mm = String(dt.getMinutes()).padStart(2,'0');
         const ss = String(dt.getSeconds()).padStart(2,'0');
-        const zipName = `svgs_${y}${m}${d}-${hh}${mm}${ss}_${safeName(currentFontName)}.zip`;
+        const safeFontName = safeName(currentFontName).replace(/\s+/g,'-');
+        const zipName = `svgs_${y}${m}${d}-${hh}${mm}${ss}_${safeFontName}.zip`;
 
         a.download = zipName;
         a.click();
