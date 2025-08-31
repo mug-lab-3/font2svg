@@ -16,7 +16,8 @@
     .btn{appearance:none;border:0;border-radius:12px;padding:10px 14px;background:var(--pri);color:#fff;cursor:pointer}
     .btn[disabled]{opacity:.5;cursor:not-allowed}
     label.inline{display:inline-flex;align-items:center;gap:8px}
-    select,textarea,input[type="number"],input[type="range"],input[type="checkbox"]{padding:8px 10px;border-radius:10px;border:1px solid var(--ring);background:#1f2937;color:var(--fg)}
+    select,textarea,input[type="number"],input[type="range"],input[type="checkbox"],input[type="color"]{padding:8px 10px;border-radius:10px;border:1px solid var(--ring);background:#1f2937;color:var(--fg)}
+    input[type="color"]{padding:0;width:48px;height:34px}
     a{color:var(--accent)}
     textarea{min-width:420px;min-height:80px}
     input[type="range"]{vertical-align:middle;padding:0}
@@ -78,6 +79,7 @@
           </select>
         </label>
         <label class="inline">線幅 <input id="strokeW" type="number" value="1.5" min="0.5" step="0.5" style="width:80px"/> px</label>
+        <label class="inline">文字色 <input id="color" type="color" value="#ffffff" /></label>
         <label class="inline">空白を除外 <input id="skipSpace" type="checkbox" checked /></label>
       </div>
       <div style="margin-top:8px">
@@ -124,6 +126,7 @@
       const elPrecVal = $("precVal");
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
+    const elColor = $("color");
     const elSkipSpace = $("skipSpace");
 
     const elGen = $("btnGen");
@@ -145,6 +148,7 @@
     }
 
       elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
+      elColor.addEventListener('input', async ()=>{ if (lastGenerated) { await generateAll(); } });
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
@@ -267,7 +271,7 @@
 
     // 文字→SVG
     function buildSVGForChar(font, ch, opts){
-      const { sizePx, precision, mode, strokeWidth } = opts;
+      const { sizePx, precision, mode, strokeWidth, color } = opts;
       const scale = sizePx / font.unitsPerEm;
       const glyph = font.charToGlyph ? font.charToGlyph(ch) : font.stringToGlyphs(ch)[0];
 
@@ -289,7 +293,7 @@
         // ty はベースラインを共通に保つため一定値とする
       }
 
-      const style = (mode==='solid') ? `fill: black;` : `fill: none; stroke: black; stroke-width: ${strokeWidth};`;
+      const style = (mode==='solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
       const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
       return svg;
     }
@@ -297,7 +301,7 @@
     // テキスト全体 → SVG
     function buildSVGForText(text, opts){
       if(!otFont) return '';
-      const { sizePx, precision, mode, strokeWidth } = opts;
+      const { sizePx, precision, mode, strokeWidth, color } = opts;
       const scale = sizePx / otFont.unitsPerEm;
       const m = sizePx * 0.08; // マージン
 
@@ -323,7 +327,7 @@
         ty = m - bb.y1;
       }
 
-      const style = (mode==='solid') ? `fill: black;` : `fill: none; stroke: black; stroke-width: ${strokeWidth};`;
+      const style = (mode==='solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
       const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
       return svg;
     }
@@ -341,10 +345,7 @@
       tile.className = 'tile';
       const box = document.createElement('div');
       box.className = 'box';
-      const previewSvg = svg
-        .replace(/fill:\s*black;/g, 'fill: #fff;')
-        .replace(/stroke:\s*black;/g, 'stroke: #fff;');
-      box.innerHTML = previewSvg;
+      box.innerHTML = svg;
       const meta = document.createElement('div');
       meta.className = 'meta';
       meta.innerHTML = `<span>#${idx+1}「${escapeHtml(char)}」</span>`;
@@ -371,6 +372,7 @@
       const sizePx = 300;
       const precision = Number(elPrec.value);
       const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
+      const color = elColor.value;
       const skipSpace = elSkipSpace.checked;
 
       setStatus('SVG を生成しています…');
@@ -397,12 +399,12 @@
       for(let i=0;i<chars.length;i++){
         const ch = chars[i];
         try{
-          const svg = buildSVGForChar(otFont, ch, { sizePx, precision, mode, strokeWidth });
+          const svg = buildSVGForChar(otFont, ch, { sizePx, precision, mode, strokeWidth, color });
           svgs.push({ ch, svg });
           grid.appendChild(makeTile(ch, svg, i, pad));
         }catch(err){ console.error(err); }
       }
-      const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth });
+      const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
 
       elPreview.appendChild(grid);
       elDlAll.disabled = false;
