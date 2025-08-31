@@ -155,6 +155,16 @@
           await generateAll({ instant: true });
         }
       });
+      elMode.addEventListener('change', async ()=>{
+        if (lastGenerated && !isSwitchingFont) {
+          await generateAll({ instant: true });
+        }
+      });
+      elStrokeW.addEventListener('input', async ()=>{
+        if (lastGenerated && !isSwitchingFont) {
+          await generateAll({ instant: true });
+        }
+      });
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
