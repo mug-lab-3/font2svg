@@ -155,6 +155,16 @@
           await generateAll({ instant: true });
         }
       });
+      elMode.addEventListener('change', async ()=>{
+        if (lastGenerated && !isSwitchingFont) {
+          await generateAll({ instant: true });
+        }
+      });
+      elStrokeW.addEventListener('input', async ()=>{
+        if (lastGenerated && !isSwitchingFont) {
+          await generateAll({ instant: true });
+        }
+      });
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
@@ -244,7 +254,8 @@
           const fd = supported[idx];
           if(!fd){ isSwitchingFont = false; return; }
 
-          elList.disabled = true; if (elGen) elGen.disabled = true;
+            // Keep "SVGを生成" button enabled when a font is already loaded to avoid flicker
+            elList.disabled = true; if (!otFont && elGen) elGen.disabled = true;
           showLoading('フォントを読み込んでいます…');
           updateLoadingProgress(0,1);
           try{
