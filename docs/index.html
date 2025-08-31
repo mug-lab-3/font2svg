@@ -354,7 +354,7 @@
       btn.addEventListener('click', ()=>{
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
-        a.download = `${pad(idx+1)}_${safeName(char)}.svg`;
+        a.download = `N${pad(idx+1)}_${safeName(char)}.svg`;
         a.click();
         URL.revokeObjectURL(a.href);
       });
@@ -416,7 +416,7 @@
         const zip = new JSZip();
         for(let i=0;i<svgs.length;i++){
           const {ch, svg} = svgs[i];
-          zip.file(`${pad(i+1)}_${safeName(ch)}.svg`, svg);
+          zip.file(`N${pad(i+1)}_${safeName(ch)}.svg`, svg);
         }
         zip.file('full_text.svg', fullTextSvg);
         const blob = await zip.generateAsync({type:'blob'});
