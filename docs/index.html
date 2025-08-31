@@ -148,7 +148,11 @@
     }
 
       elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
-      elColor.addEventListener('input', async ()=>{ if (lastGenerated) { await generateAll(); } });
+      elColor.addEventListener('input', async ()=>{
+        if (lastGenerated) {
+          await generateAll({ instant: true });
+        }
+      });
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
@@ -367,7 +371,8 @@
     }
 
     // 生成（1文字ずつ）
-    async function generateAll(){
+    async function generateAll(opts = {}){
+      const { instant = false } = opts;
       if(!otFont){ setStatus('先にフォントを選択してください。'); return; }
       const sizePx = 300;
       const precision = Number(elPrec.value);
@@ -376,10 +381,11 @@
       const skipSpace = elSkipSpace.checked;
 
       setStatus('SVG を生成しています…');
-      elPreview.classList.add('swap-off');
-      await new Promise(r => requestAnimationFrame(r));
-
-      elPreview.innerHTML = '';
+      if (!instant) {
+        elPreview.classList.add('swap-off');
+        await new Promise(r => requestAnimationFrame(r));
+        elPreview.innerHTML = '';
+      }
       const grid = document.createElement('div');
       grid.className = 'grid';
 
@@ -406,11 +412,15 @@
       }
       const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
 
-      elPreview.appendChild(grid);
+      elPreview.replaceChildren(grid);
       elDlAll.disabled = false;
       lastGenerated = true;
       setStatus(`生成が完了しました（${svgs.length} 文字）。`);
-      requestAnimationFrame(()=>{ elPreview.classList.remove('swap-off'); });
+      if (!instant) {
+        requestAnimationFrame(()=>{ elPreview.classList.remove('swap-off'); });
+      } else {
+        elPreview.classList.remove('swap-off');
+      }
 
       // 一括ZIP
       elDlAll.onclick = async ()=>{
