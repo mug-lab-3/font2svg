@@ -31,6 +31,18 @@
     .tile .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--accent);color:#000;font-size:12px}
 
+    /* Loading overlay（一覧取得時のみ使用／フェード） */
+    .loadingOverlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:flex; align-items:center; justify-content:center; z-index:1000;
+      opacity:0; pointer-events:none; transition:opacity .18s ease;
+    }
+    .loadingOverlay.show{ opacity:1; pointer-events:auto; }
+    .loadingPanel{background:var(--card);border:1px solid var(--ring);border-radius:14px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px}
+    .loadingText{display:flex;flex-direction:column;gap:2px}
+    #loadingPct{font-size:12px;color:var(--muted);text-align:right}
+    .spinner{width:22px;height:22px;border:3px solid var(--ring);border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -87,6 +99,16 @@
         <div class="help">ここに各文字のSVGを表示します。</div>
       </div>
     </section>
+  </div>
+
+  <div id="loading" class="loadingOverlay" role="alert" aria-live="polite">
+    <div class="loadingPanel">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loadingText">
+        <div id="loadingMsg">処理中です…</div>
+        <div id="loadingPct"></div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
@@ -158,12 +180,35 @@
       });
     }
 
+    const showLoading = (msg)=>{
+      const el = document.getElementById('loading');
+      const msgEl = document.getElementById('loadingMsg');
+      const pctEl = document.getElementById('loadingPct');
+      if (el) {
+        el.classList.add('show');
+        if (msgEl) msgEl.textContent = msg || '処理中です…';
+        if (pctEl) pctEl.textContent = '';
+      }
+    };
+    const updateLoadingProgress = (current,total)=>{
+      const pctEl = document.getElementById('loadingPct');
+      if (pctEl && total > 0) {
+        const pct = Math.floor((current/total)*100);
+        pctEl.textContent = pct + '%';
+      }
+    };
+    const hideLoading = ()=>{
+      const el = document.getElementById('loading');
+      const pctEl = document.getElementById('loadingPct');
+      if (el) el.classList.remove('show');
+      if (pctEl) pctEl.textContent = '';
+    };
 
     elListBtn.addEventListener('click', async ()=>{
       if(!supportLocal) return;
       try{
         elListBtn.disabled = true;
-        setStatus('ローカルフォントを取得しています…');
+        showLoading('ローカルフォントを取得しています…');
 
         const fonts = await window.queryLocalFonts();
         const seen = new Set();
@@ -175,6 +220,7 @@
         unique.sort((a,b)=> (a.fullName||a.family).localeCompare(b.fullName||b.family));
 
         const supported = [];
+        updateLoadingProgress(0, unique.length);
         for(let i=0;i<unique.length;i++){
           const fd = unique[i];
           try{
@@ -183,6 +229,7 @@
             if(isCollectionBuffer(headBuf)) continue;
             supported.push(fd);
           }catch(e){}
+          updateLoadingProgress(i+1, unique.length);
         }
 
         elList.innerHTML = '<option value="">▼ フォントを選択</option>'
@@ -197,11 +244,13 @@
           const fd = supported[idx];
           if(!fd){ isSwitchingFont = false; return; }
 
-          elList.disabled = true; if (elGen) elGen.disabled = true;
-          setStatus('フォントを読み込んでいます…');
+            // Keep "SVGを生成" button enabled when a font is already loaded to avoid flicker
+            elList.disabled = true; if (!otFont && elGen) elGen.disabled = true;
+          showLoading('フォントを読み込んでいます…');
+          updateLoadingProgress(0,1);
           try{
             const blob = await fd.blob();
-            const buf = await readBlobWithProgress(blob);
+            const buf = await readBlobWithProgress(blob, (loaded,total)=> updateLoadingProgress(loaded,total));
             otFont = opentype.parse(buf);
             elFontName.textContent = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
             currentFontName = elFontName.textContent;
@@ -212,6 +261,7 @@
             console.error(err);
             setStatus('フォントの解析に失敗しました。');
           }finally{
+            hideLoading();
             elList.disabled = false;
             if (!otFont && elGen) elGen.disabled = true;
             isSwitchingFont = false;
@@ -221,6 +271,7 @@
         console.error(err);
         setStatus('ローカルフォントの取得に失敗しました。');
       }finally{
+        hideLoading();
         elListBtn.disabled = false;
       }
     });
