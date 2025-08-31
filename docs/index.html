@@ -23,9 +23,9 @@
     input[type="range"]{vertical-align:middle;padding:0}
     .help{color:var(--muted);font-size:12px}
     .status{font-size:13px;color:var(--muted);margin-left:8px}
-    .preview{min-height:230px;border:1px dashed var(--ring);border-radius:12px;background:var(--card);padding:4px;overflow:auto;transition:opacity .14s ease;will-change:opacity;contain:paint}
+    .preview{min-height:260px;border:1px dashed var(--ring);border-radius:12px;background:var(--card);padding:4px;overflow:auto;transition:opacity .14s ease;will-change:opacity;contain:paint}
     .preview.swap-off{opacity:0}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
     .tile{background:var(--card);border:1px solid var(--ring);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
     .tile .box{background-color:#343434;background-image:linear-gradient(45deg,#505050 25%,transparent 25%,transparent 75%,#505050 75%,#505050),linear-gradient(45deg,#505050 25%,transparent 25%,transparent 75%,#505050 75%,#505050);background-size:20px 20px;background-position:0 0,10px 10px;border:1px solid var(--ring);border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:160px;overflow:auto}
     .tile .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
@@ -137,7 +137,7 @@
     const elDlAll = $("btnDlAll");
 
     const PREVIEW_SIZE = 300;
-    const PREVIEW_HEIGHT = 230;
+    const PREVIEW_HEIGHT = 260;
     const OUTPUT_SIZE = 480;
 
     let otFont = null;
