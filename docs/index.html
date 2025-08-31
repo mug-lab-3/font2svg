@@ -80,10 +80,9 @@
         </label>
         <label class="inline">線幅 <input id="strokeW" type="number" value="1.5" min="0.5" step="0.5" style="width:80px"/> px</label>
         <label class="inline">空白を除外 <input id="skipSpace" type="checkbox" checked /></label>
-        <label class="inline">入力文字列全体を含める <input id="includeFull" type="checkbox" /></label>
       </div>
       <div style="margin-top:8px">
-        <button id="btnGen" class="btn" disabled>1文字ずつSVGを生成</button>
+        <button id="btnGen" class="btn" disabled>SVGを生成</button>
         <span id="status" class="status"></span>
       </div>
     </section>
@@ -127,7 +126,6 @@
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
     const elSkipSpace = $("skipSpace");
-    const elIncludeFull = $("includeFull");
 
     const elGen = $("btnGen");
     const elStatus = $("status");
@@ -366,7 +364,6 @@
       const precision = Number(elPrec.value);
       const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
       const skipSpace = elSkipSpace.checked;
-      const includeFull = elIncludeFull.checked;
 
       setStatus('SVG を生成しています…');
       elPreview.classList.add('swap-off');
@@ -397,7 +394,7 @@
           grid.appendChild(makeTile(ch, svg, i, pad));
         }catch(err){ console.error(err); }
       }
-      const fullTextSvg = includeFull ? buildSVGForText(chars.join(''), { sizePx, precision, mode, strokeWidth }) : null;
+      const fullTextSvg = buildSVGForText(chars.join(''), { sizePx, precision, mode, strokeWidth });
 
       elPreview.appendChild(grid);
       elDlAll.disabled = false;
@@ -413,9 +410,7 @@
           const {ch, svg} = svgs[i];
           zip.file(`${pad(i+1)}_${safeName(ch)}.svg`, svg);
         }
-        if(fullTextSvg){
-          zip.file('full_text.svg', fullTextSvg);
-        }
+        zip.file('full_text.svg', fullTextSvg);
         const blob = await zip.generateAsync({type:'blob'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
