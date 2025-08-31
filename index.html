@@ -280,9 +280,11 @@
       const m = sizePx * 0.08;
       if(typeof gp.getBoundingBox === 'function'){
         const bb = gp.getBoundingBox();
+        const glyphHeight = bb.y2 - bb.y1;
         width  = Math.ceil((bb.x2 - bb.x1) + 2*m);
-        height = Math.ceil((bb.y2 - bb.y1) + 2*m);
-        tx = -bb.x1 + m; ty = -bb.y1 + m;
+        height = Math.ceil(glyphHeight + 2*m);
+        tx = -bb.x1 + m;
+        ty = (height - glyphHeight) / 2 - bb.y1;
       }else{
         width  = Math.ceil((glyph.advanceWidth || font.unitsPerEm) * scale + 2*m);
         height = Math.ceil(sizePx * 1.3);
