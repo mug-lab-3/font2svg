@@ -65,7 +65,7 @@
     <section class="card">
       <h2>2. テキストと出力設定</h2>
       <div class="row">
-        <label class="inline" style="align-items:flex-start">テキスト（改行は無視）
+        <label class="inline" style="align-items:flex-start">テキスト
           <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
         </label>
       </div>
@@ -301,17 +301,26 @@
       const scale = sizePx / otFont.unitsPerEm;
       const m = sizePx * 0.08; // マージン
 
-      const path = otFont.getPath(text, 0, otFont.ascender * scale, sizePx);
-      const d = path.toPathData(precision);
+      const lineHeight = (otFont.ascender - otFont.descender) * scale;
+      const lines = String(text).replace(/\r\n?/g,'\n').split('\n');
+      const fullPath = new opentype.Path();
+      let width = 0;
+      for(let i=0;i<lines.length;i++){
+        const line = lines[i];
+        const p = otFont.getPath(line, 0, otFont.ascender * scale + i * lineHeight, sizePx);
+        fullPath.commands.push(...p.commands);
+        width = Math.max(width, otFont.getAdvanceWidth(line, sizePx));
+      }
+      const d = fullPath.toPathData(precision);
 
-      let width = Math.ceil(path.getBoundingBox ? (path.getBoundingBox().x2 - path.getBoundingBox().x1) : otFont.getAdvanceWidth(text, sizePx));
-      width += 2 * m;
-      const height = Math.ceil((otFont.ascender - otFont.descender) * scale + 2 * m);
+      width = Math.ceil(width + 2 * m);
+      const height = Math.ceil(lineHeight * lines.length + 2 * m);
 
       let tx = m, ty = m;
-      if (typeof path.getBoundingBox === 'function'){
-        const bb = path.getBoundingBox();
+      if (typeof fullPath.getBoundingBox === 'function'){
+        const bb = fullPath.getBoundingBox();
         tx = m - bb.x1;
+        ty = m - bb.y1;
       }
 
       const style = (mode==='solid') ? `fill: black;` : `fill: none; stroke: black; stroke-width: ${strokeWidth};`;
@@ -393,7 +402,7 @@
           grid.appendChild(makeTile(ch, svg, i, pad));
         }catch(err){ console.error(err); }
       }
-      const fullTextSvg = buildSVGForText(chars.join(''), { sizePx, precision, mode, strokeWidth });
+      const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth });
 
       elPreview.appendChild(grid);
       elDlAll.disabled = false;
