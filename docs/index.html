@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>文字ごとのSVGアウトライン生成（Local Fonts・単一ファイル）</title>
+  <title>font2svg</title>
   <style>
     :root{--bg:#0f0d11;--fg:#f8fafc;--muted:#94a3b8;--card:#1f1f28;--ring:#374151;--pri:#ac00ac;--accent:#00acac}
     *{box-sizing:border-box}
@@ -29,7 +29,6 @@
     .tile{background:var(--card);border:1px solid var(--ring);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
     .tile .box{background-color:#343434;background-image:linear-gradient(45deg,#505050 25%,transparent 25%,transparent 75%,#505050 75%,#505050),linear-gradient(45deg,#505050 25%,transparent 25%,transparent 75%,#505050 75%,#505050);background-size:20px 20px;background-position:0 0,10px 10px;border:1px solid var(--ring);border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:160px;overflow:auto}
     .tile .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--accent);color:#000;font-size:12px}
 
     /* Loading overlay（一覧取得時のみ使用／フェード） */
     .loadingOverlay{
@@ -48,7 +47,7 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>文字ごとのSVGアウトライン生成 <span class="pill">Local Fonts 専用</span></h1>
+      <h1>文字ごとのSVGアウトライン生成</h1>
       <p class="help">お使いの端末にインストールされているフォントを選び、入力テキスト（改行は無視）を<strong>1文字ごとに独立したSVG</strong>に変換します。処理はすべてお使いのブラウザ内で完結し、入力文字列やフォントデータが外部に送信されることはありません。</p>
     </header>
 
