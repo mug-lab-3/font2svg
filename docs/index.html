@@ -89,7 +89,7 @@
     <section class="card">
       <h2>3. プレビューと一括ダウンロード</h2>
       <div class="row" style="margin-bottom:10px">
-        <button id="btnDlAll" class="btn" disabled>すべてをZIPでダウンロード</button>
+        <button id="btnDlAll" class="btn" disabled>すべてをZIPでDL</button>
       </div>
       <div id="preview" class="preview">
         <div class="help">ここに各文字のSVGを表示します。</div>
@@ -350,7 +350,7 @@
       meta.innerHTML = `<span>#${idx+1}「${escapeHtml(char)}」</span>`;
       const btn = document.createElement('button');
       btn.className = 'btn';
-      btn.textContent = 'このSVGをダウンロード';
+      btn.textContent = 'このSVGをDL';
       btn.addEventListener('click', ()=>{
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
