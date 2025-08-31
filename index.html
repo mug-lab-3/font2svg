@@ -288,7 +288,8 @@
       let tx = m, ty = m;
       if (typeof gp.getBoundingBox === 'function'){
         const bb = gp.getBoundingBox();
-        tx = -bb.x1 + m;
+        const glyphW = bb.x2 - bb.x1;
+        tx = (width - glyphW) / 2 - bb.x1;
         ty = -bb.y1 + m;
       }
 
