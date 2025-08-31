@@ -80,6 +80,7 @@
         </label>
         <label class="inline">線幅 <input id="strokeW" type="number" value="1.5" min="0.5" step="0.5" style="width:80px"/> px</label>
         <label class="inline">空白を除外 <input id="skipSpace" type="checkbox" checked /></label>
+        <label class="inline">入力文字列全体を含める <input id="includeFull" type="checkbox" /></label>
       </div>
       <div style="margin-top:8px">
         <button id="btnGen" class="btn" disabled>1文字ずつSVGを生成</button>
@@ -126,6 +127,7 @@
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
     const elSkipSpace = $("skipSpace");
+    const elIncludeFull = $("includeFull");
 
     const elGen = $("btnGen");
     const elStatus = $("status");
@@ -295,6 +297,31 @@
       return svg;
     }
 
+    // テキスト全体 → SVG
+    function buildSVGForText(text, opts){
+      if(!otFont) return '';
+      const { sizePx, precision, mode, strokeWidth } = opts;
+      const scale = sizePx / otFont.unitsPerEm;
+      const m = sizePx * 0.08; // マージン
+
+      const path = otFont.getPath(text, 0, otFont.ascender * scale, sizePx);
+      const d = path.toPathData(precision);
+
+      let width = Math.ceil(path.getBoundingBox ? (path.getBoundingBox().x2 - path.getBoundingBox().x1) : otFont.getAdvanceWidth(text, sizePx));
+      width += 2 * m;
+      const height = Math.ceil((otFont.ascender - otFont.descender) * scale + 2 * m);
+
+      let tx = m, ty = m;
+      if (typeof path.getBoundingBox === 'function'){
+        const bb = path.getBoundingBox();
+        tx = m - bb.x1;
+      }
+
+      const style = (mode==='solid') ? `fill: black;` : `fill: none; stroke: black; stroke-width: ${strokeWidth};`;
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
+      return svg;
+    }
+
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
 
     function* iterCharsIgnoringNewlines(str){
@@ -339,6 +366,7 @@
       const precision = Number(elPrec.value);
       const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
       const skipSpace = elSkipSpace.checked;
+      const includeFull = elIncludeFull.checked;
 
       setStatus('SVG を生成しています…');
       elPreview.classList.add('swap-off');
@@ -369,6 +397,8 @@
           grid.appendChild(makeTile(ch, svg, i, pad));
         }catch(err){ console.error(err); }
       }
+      const fullTextSvg = includeFull ? buildSVGForText(chars.join(''), { sizePx, precision, mode, strokeWidth }) : null;
+
       elPreview.appendChild(grid);
       elDlAll.disabled = false;
       lastGenerated = true;
@@ -382,6 +412,9 @@
         for(let i=0;i<svgs.length;i++){
           const {ch, svg} = svgs[i];
           zip.file(`${pad(i+1)}_${safeName(ch)}.svg`, svg);
+        }
+        if(fullTextSvg){
+          zip.file('full_text.svg', fullTextSvg);
         }
         const blob = await zip.generateAsync({type:'blob'});
         const a = document.createElement('a');
