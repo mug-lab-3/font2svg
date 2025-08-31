@@ -37,6 +37,8 @@
     }
     .loadingOverlay.show{ opacity:1; pointer-events:auto; }
     .loadingPanel{background:#fff;border:1px solid var(--ring);border-radius:14px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px}
+    .loadingText{display:flex;flex-direction:column;gap:2px}
+    #loadingPct{font-size:12px;color:var(--muted);text-align:right}
     .spinner{width:22px;height:22px;border:3px solid #e2e8f0;border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
@@ -99,7 +101,10 @@
   <div id="loading" class="loadingOverlay" role="alert" aria-live="polite">
     <div class="loadingPanel">
       <div class="spinner" aria-hidden="true"></div>
-      <div id="loadingMsg">処理中です…</div>
+      <div class="loadingText">
+        <div id="loadingMsg">処理中です…</div>
+        <div id="loadingPct"></div>
+      </div>
     </div>
   </div>
 
@@ -159,14 +164,38 @@
       return head === 'ttcf';
     }
 
+    function readBlobWithProgress(blob, onProgress){
+      return new Promise((resolve, reject)=>{
+        const fr = new FileReader();
+        fr.onprogress = e=>{ if(e.lengthComputable && typeof onProgress === 'function'){ onProgress(e.loaded, e.total); } };
+        fr.onload = ()=> resolve(fr.result);
+        fr.onerror = err=> reject(err);
+        fr.readAsArrayBuffer(blob);
+      });
+    }
+
     const showLoading = (msg)=>{
       const el = document.getElementById('loading');
       const msgEl = document.getElementById('loadingMsg');
-      if (el) { el.classList.add('show'); if (msgEl) msgEl.textContent = msg || '処理中です…'; }
+      const pctEl = document.getElementById('loadingPct');
+      if (el) {
+        el.classList.add('show');
+        if (msgEl) msgEl.textContent = msg || '処理中です…';
+        if (pctEl) pctEl.textContent = '';
+      }
+    };
+    const updateLoadingProgress = (current,total)=>{
+      const pctEl = document.getElementById('loadingPct');
+      if (pctEl && total > 0) {
+        const pct = Math.floor((current/total)*100);
+        pctEl.textContent = pct + '%';
+      }
     };
     const hideLoading = ()=>{
       const el = document.getElementById('loading');
+      const pctEl = document.getElementById('loadingPct');
       if (el) el.classList.remove('show');
+      if (pctEl) pctEl.textContent = '';
     };
 
     elListBtn.addEventListener('click', async ()=>{
@@ -185,6 +214,7 @@
         unique.sort((a,b)=> (a.fullName||a.family).localeCompare(b.fullName||b.family));
 
         const supported = [];
+        updateLoadingProgress(0, unique.length);
         for(let i=0;i<unique.length;i++){
           const fd = unique[i];
           try{
@@ -193,6 +223,7 @@
             if(isCollectionBuffer(headBuf)) continue;
             supported.push(fd);
           }catch(e){}
+          updateLoadingProgress(i+1, unique.length);
         }
 
         elList.innerHTML = '<option value="">▼ フォントを選択</option>'
@@ -208,9 +239,11 @@
           if(!fd){ isSwitchingFont = false; return; }
 
           elList.disabled = true; if (elGen) elGen.disabled = true;
+          showLoading('フォントを読み込んでいます…');
+          updateLoadingProgress(0,1);
           try{
             const blob = await fd.blob();
-            const buf = await blob.arrayBuffer();
+            const buf = await readBlobWithProgress(blob, (loaded,total)=> updateLoadingProgress(loaded,total));
             otFont = opentype.parse(buf);
             elFontName.textContent = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
             currentFontName = elFontName.textContent;
@@ -221,6 +254,7 @@
             console.error(err);
             setStatus('フォントの解析に失敗しました。');
           }finally{
+            hideLoading();
             elList.disabled = false;
             if (!otFont && elGen) elGen.disabled = true;
             isSwitchingFont = false;
