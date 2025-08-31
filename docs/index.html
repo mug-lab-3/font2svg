@@ -65,9 +65,8 @@
     <section class="card">
       <h2>2. テキストと出力設定</h2>
       <div class="row">
-        <label class="inline" style="align-items:flex-start">テキスト（改行は無視）
-          <textarea id="text">漢字ひらがなカタカナABC123!%$
-改行は無視</textarea>
+        <label class="inline" style="align-items:flex-start">テキスト
+          <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
         </label>
       </div>
       <div class="row" style="margin-top:6px">
@@ -82,7 +81,7 @@
         <label class="inline">空白を除外 <input id="skipSpace" type="checkbox" checked /></label>
       </div>
       <div style="margin-top:8px">
-        <button id="btnGen" class="btn" disabled>1文字ずつSVGを生成</button>
+        <button id="btnGen" class="btn" disabled>SVGを生成</button>
         <span id="status" class="status"></span>
       </div>
     </section>
@@ -90,7 +89,7 @@
     <section class="card">
       <h2>3. プレビューと一括ダウンロード</h2>
       <div class="row" style="margin-bottom:10px">
-        <button id="btnDlAll" class="btn" disabled>すべてをZIPでダウンロード</button>
+        <button id="btnDlAll" class="btn" disabled>すべてをZIPでDL</button>
       </div>
       <div id="preview" class="preview">
         <div class="help">ここに各文字のSVGを表示します。</div>
@@ -295,6 +294,40 @@
       return svg;
     }
 
+    // テキスト全体 → SVG
+    function buildSVGForText(text, opts){
+      if(!otFont) return '';
+      const { sizePx, precision, mode, strokeWidth } = opts;
+      const scale = sizePx / otFont.unitsPerEm;
+      const m = sizePx * 0.08; // マージン
+
+      const lineHeight = (otFont.ascender - otFont.descender) * scale;
+      const lines = String(text).replace(/\r\n?/g,'\n').split('\n');
+      const fullPath = new opentype.Path();
+      let width = 0;
+      for(let i=0;i<lines.length;i++){
+        const line = lines[i];
+        const p = otFont.getPath(line, 0, otFont.ascender * scale + i * lineHeight, sizePx);
+        fullPath.commands.push(...p.commands);
+        width = Math.max(width, otFont.getAdvanceWidth(line, sizePx));
+      }
+      const d = fullPath.toPathData(precision);
+
+      width = Math.ceil(width + 2 * m);
+      const height = Math.ceil(lineHeight * lines.length + 2 * m);
+
+      let tx = m, ty = m;
+      if (typeof fullPath.getBoundingBox === 'function'){
+        const bb = fullPath.getBoundingBox();
+        tx = m - bb.x1;
+        ty = m - bb.y1;
+      }
+
+      const style = (mode==='solid') ? `fill: black;` : `fill: none; stroke: black; stroke-width: ${strokeWidth};`;
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
+      return svg;
+    }
+
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
 
     function* iterCharsIgnoringNewlines(str){
@@ -317,7 +350,7 @@
       meta.innerHTML = `<span>#${idx+1}「${escapeHtml(char)}」</span>`;
       const btn = document.createElement('button');
       btn.className = 'btn';
-      btn.textContent = 'このSVGをダウンロード';
+      btn.textContent = 'このSVGをDL';
       btn.addEventListener('click', ()=>{
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
@@ -369,6 +402,8 @@
           grid.appendChild(makeTile(ch, svg, i, pad));
         }catch(err){ console.error(err); }
       }
+      const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth });
+
       elPreview.appendChild(grid);
       elDlAll.disabled = false;
       lastGenerated = true;
@@ -383,6 +418,7 @@
           const {ch, svg} = svgs[i];
           zip.file(`${pad(i+1)}_${safeName(ch)}.svg`, svg);
         }
+        zip.file('full_text.svg', fullTextSvg);
         const blob = await zip.generateAsync({type:'blob'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
