@@ -312,7 +312,10 @@
       tile.className = 'tile';
       const box = document.createElement('div');
       box.className = 'box';
-      box.innerHTML = svg;
+      const previewSvg = svg
+        .replace(/fill:\s*black;/g, 'fill: #fff;')
+        .replace(/stroke:\s*black;/g, 'stroke: #fff;');
+      box.innerHTML = previewSvg;
       const meta = document.createElement('div');
       meta.className = 'meta';
       meta.innerHTML = `<span>#${idx+1}「${escapeHtml(char)}」</span>`;
