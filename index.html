@@ -23,16 +23,13 @@
     .status{font-size:13px;color:var(--muted);margin-left:8px}
     .preview{min-height:260px;border:1px dashed var(--ring);border-radius:12px;background:#f8fafc;padding:10px;overflow:auto;transition:opacity .14s ease;will-change:opacity;contain:paint}
     .preview.swap-off{opacity:0}
-    .preview.swap-off{opacity:0}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
     .tile{background:#fff;border:1px solid var(--ring);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
     .tile .box{background:#ffffff;border:1px solid var(--ring);border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:160px;overflow:auto}
     .tile .meta{font-size:12px;color:#475569;display:flex;justify-content:space-between;gap:8px}
-    details>summary{cursor:pointer}
-    pre{white-space:pre-wrap;word-break:break-word;background:#f1f5f9;border:1px solid var(--ring);padding:10px;border-radius:12px}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}
 
-    /* Loading overlay：display切替ではなくフェードでちらつき抑制（一覧取得時のみ使用） */
+    /* Loading overlay（一覧取得時のみ使用／フェード） */
     .loadingOverlay{
       position:fixed; inset:0; background:rgba(15,23,42,.35);
       display:flex; align-items:center; justify-content:center; z-index:1000;
@@ -99,7 +96,6 @@
     </section>
   </div>
 
-  <!-- Loading overlay（一覧取得時のみ使用／フェード） -->
   <div id="loading" class="loadingOverlay" role="alert" aria-live="polite">
     <div class="loadingPanel">
       <div class="spinner" aria-hidden="true"></div>
@@ -107,9 +103,7 @@
     </div>
   </div>
 
-  <!-- opentype.js（フォントのアウトライン抽出に使用） -->
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
-  <!-- JSZip（一括ダウンロード用のZIP生成） -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <script>
@@ -137,25 +131,27 @@
     const elDlAll = $("btnDlAll");
 
     let otFont = null;
-    let isSwitchingFont = false; // 多重起動防止
-    let lastGenerated = false; // 直近に生成済みか
-    let currentFontName = ''; // ZIP名用に現在のフォント名を保持
+    let isSwitchingFont = false;
+    let lastGenerated = false;
+    let currentFontName = '';
 
     const supportLocal = typeof window.queryLocalFonts === 'function';
-    elSupport.textContent = '';
     if (!supportLocal) {
       elListBtn.disabled = true;
       if (elGen) elGen.disabled = true;
       elSupport.textContent = 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。';
     }
 
-    // UI digits
     elSize.addEventListener('input', ()=> elSizeVal.textContent = elSize.value);
     elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
-    // フォントコレクション(TTC/OTC)判定：先頭4バイトが 'ttcf' なら未対応
+    // ファイル名の危険文字を安全化
+    function safeName(s){
+      return String(s ?? 'LocalFont').replace(/[\\/:*?"<>|\r\n]/g,'_').trim() || 'LocalFont';
+    }
+
     function isCollectionBuffer(buf){
       if(!buf || buf.byteLength < 4) return false;
       const u8 = new Uint8Array(buf, 0, 4);
@@ -163,7 +159,6 @@
       return head === 'ttcf';
     }
 
-    // Loading overlay（一覧取得時のみ使用）
     const showLoading = (msg)=>{
       const el = document.getElementById('loading');
       const msgEl = document.getElementById('loadingMsg');
@@ -174,7 +169,6 @@
       if (el) el.classList.remove('show');
     };
 
-    // ローカルフォント一覧→選択
     elListBtn.addEventListener('click', async ()=>{
       if(!supportLocal) return;
       try{
@@ -190,71 +184,58 @@
         }
         unique.sort((a,b)=> (a.fullName||a.family).localeCompare(b.fullName||b.family));
 
-        // 非対応フォント（TTC/OTC＝'ttcf'）を事前に除外
         const supported = [];
-        showLoading(`フォントを確認しています… 0/${unique.length}`);
         for(let i=0;i<unique.length;i++){
           const fd = unique[i];
           try{
             const blob = await fd.blob();
             const headBuf = await blob.slice(0,4).arrayBuffer();
-            if(isCollectionBuffer(headBuf)){
-              showLoading(`フォントを確認しています… ${i+1}/${unique.length}`);
-              continue; // フォントコレクションは除外
-            }
+            if(isCollectionBuffer(headBuf)) continue;
             supported.push(fd);
-          }catch(e){ /* 読み取り失敗は除外 */ }
-          showLoading(`フォントを確認しています… ${i+1}/${unique.length}`);
+          }catch(e){}
         }
 
         elList.innerHTML = '<option value="">▼ フォントを選択</option>'
           + supported.map((f,i)=> `<option value="${i}">${escapeHtml(f.fullName || f.postscriptName || (f.family+' '+(f.style||'')))}</option>`).join('');
         elList.style.display = 'inline-block';
-        setStatus(`ローカルフォント ${supported.length} 件（非対応フォントは一覧に表示しません）`);
+        setStatus(`ローカルフォント ${supported.length} 件`);
 
-        // 選択時の処理（ローディング表示なし）
         elList.onchange = async ()=>{
-          if (isSwitchingFont) return; // 二重起動防止
+          if (isSwitchingFont) return;
           isSwitchingFont = true;
-
           const idx = Number(elList.value);
           const fd = supported[idx];
           if(!fd){ isSwitchingFont = false; return; }
 
-          
           elList.disabled = true; if (elGen) elGen.disabled = true;
-
           try{
             const blob = await fd.blob();
             const buf = await blob.arrayBuffer();
-
             otFont = opentype.parse(buf);
             elFontName.textContent = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
             currentFontName = elFontName.textContent;
             if (elGen) elGen.disabled = false;
             setStatus('フォントを読み込みました。');
-            if (lastGenerated) { await generateAll({ reason: 'fontSwitch' }); }
-            if (lastGenerated) { await generateAll({ reason: 'fontSwitch' }); }
+            if (lastGenerated) { await generateAll(); }
           }catch(err){
             console.error(err);
-            setStatus('フォントの解析に失敗しました。別のフォントをお試しください。');
+            setStatus('フォントの解析に失敗しました。');
           }finally{
             elList.disabled = false;
             if (!otFont && elGen) elGen.disabled = true;
             isSwitchingFont = false;
-            // ここではプレビューを再表示しない（再生成まで非表示を維持）
           }
         };
       }catch(err){
         console.error(err);
-        setStatus('ローカルフォントの取得に失敗しました（権限やブラウザ設定をご確認ください）。');
+        setStatus('ローカルフォントの取得に失敗しました。');
       }finally{
         hideLoading();
         elListBtn.disabled = false;
       }
     });
 
-    // --- 1文字→独立SVGを作成 ---
+    // 文字→SVG
     function buildSVGForChar(font, ch, opts){
       const { sizePx, precision, mode, strokeWidth } = opts;
       const scale = sizePx / font.unitsPerEm;
@@ -262,7 +243,7 @@
       const gp = glyph.getPath(0, sizePx, sizePx);
       const d = gp.toPathData(precision);
       let width, height, tx=0, ty=0;
-      const m = sizePx * 0.08; // 余白
+      const m = sizePx * 0.08;
       if(typeof gp.getBoundingBox === 'function'){
         const bb = gp.getBoundingBox();
         width  = Math.ceil((bb.x2 - bb.x1) + 2*m);
@@ -284,7 +265,8 @@
       for(const ch of Array.from(noNL)) yield ch;
     }
 
-    function makeTile(char, svg, idx){
+    // タイル（個別ダウンロード名に 0 埋め連番を付与）
+    function makeTile(char, svg, idx, pad){
       const tile = document.createElement('div');
       tile.className = 'tile';
       const box = document.createElement('div');
@@ -299,7 +281,7 @@
       btn.addEventListener('click', ()=>{
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
-        a.download = `${char}.svg`;
+        a.download = `${pad(idx+1)}_${safeName(char)}.svg`;
         a.click();
         URL.revokeObjectURL(a.href);
       });
@@ -311,7 +293,7 @@
     }
 
     // 生成（1文字ずつ）
-    async function generateAll({reason}={}){
+    async function generateAll(){
       if(!otFont){ setStatus('先にフォントを選択してください。'); return; }
       const sizePx = Number(elSize.value);
       const precision = Number(elPrec.value);
@@ -319,7 +301,6 @@
       const skipSpace = elSkipSpace.checked;
 
       setStatus('SVG を生成しています…');
-      // フェードアウトしてから差し替え
       elPreview.classList.add('swap-off');
       await new Promise(r => requestAnimationFrame(r));
 
@@ -329,10 +310,15 @@
 
       const chars = [];
       for(const ch of iterCharsIgnoringNewlines(elText.value)){
-        if(skipSpace && /^\s$/.test(ch)) continue; // 空白除外
+        if(skipSpace && /^\s$/.test(ch)) continue;
         chars.push(ch);
       }
-      if(chars.length===0){ setStatus('対象の文字がありませんでした。'); return; }
+      if(chars.length===0){ setStatus('対象の文字がありませんでした。'); lastGenerated = false; return; }
+
+      // 0埋め関数：総数の桁数に合わせる
+      const total = chars.length;
+      const width = String(total).length;
+      const pad = n => String(n).padStart(width,'0');
 
       const svgs = [];
       for(let i=0;i<chars.length;i++){
@@ -340,36 +326,28 @@
         try{
           const svg = buildSVGForChar(otFont, ch, { sizePx, precision, mode, strokeWidth });
           svgs.push({ ch, svg });
-          grid.appendChild(makeTile(ch, svg, i));
+          grid.appendChild(makeTile(ch, svg, i, pad));
         }catch(err){ console.error(err); }
       }
       elPreview.appendChild(grid);
       elDlAll.disabled = false;
       lastGenerated = true;
       setStatus(`生成が完了しました（${svgs.length} 文字）。`);
-      // フェードイン
       requestAnimationFrame(()=>{ elPreview.classList.remove('swap-off'); });
 
       // 一括ZIP
       elDlAll.onclick = async ()=>{
         if(!window.JSZip){ alert('JSZip を読み込めませんでした。'); return; }
         const zip = new JSZip();
-
-        // ファイル名用：総数の桁数に合わせて0埋め
-        const total = svgs.length;
-        const width = String(total).length;
-        const pad = n => String(n).padStart(width,'0');
-
         for(let i=0;i<svgs.length;i++){
           const {ch, svg} = svgs[i];
-          zip.file(`${pad(i+1)}_${ch}.svg`, svg);
+          zip.file(`${pad(i+1)}_${safeName(ch)}.svg`, svg);
         }
-
         const blob = await zip.generateAsync({type:'blob'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
 
-        // ZIP名：日時とフォント名を付与
+        // ZIP名：日時とフォント名（安全化）を付与
         const dt = new Date();
         const y = dt.getFullYear();
         const m = String(dt.getMonth()+1).padStart(2,'0');
@@ -377,15 +355,15 @@
         const hh = String(dt.getHours()).padStart(2,'0');
         const mm = String(dt.getMinutes()).padStart(2,'0');
         const ss = String(dt.getSeconds()).padStart(2,'0');
-        const safe = s => String(s || 'LocalFont').replace(/[\\/:*?"<>|\r\n]/g,'_').trim() || 'LocalFont';
-        const zipName = `svgs_${y}${m}${d}-${hh}${mm}${ss}_${safe(currentFontName)}.zip`;
+        const zipName = `svgs_${y}${m}${d}-${hh}${mm}${ss}_${safeName(currentFontName)}.zip`;
+
         a.download = zipName;
         a.click();
         URL.revokeObjectURL(a.href);
       };
     }
 
-    elGen.addEventListener('click', async ()=>{ await generateAll({ reason: 'manual' }); });
+    elGen.addEventListener('click', async ()=>{ await generateAll(); });
 
   })();
   </script>
