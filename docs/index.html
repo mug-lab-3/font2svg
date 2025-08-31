@@ -69,7 +69,6 @@
           <textarea id="text">漢字ABC
 改行は無視</textarea>
         </label>
-        <label class="inline">サイズ <input id="size" type="range" min="48" max="480" step="8" value="220"/> <span id="sizeVal">220</span>px</label>
       </div>
       <div class="row" style="margin-top:6px">
         <label class="inline">小数桁 <input id="prec" type="range" min="0" max="4" step="1" value="3"/> <span id="precVal">3</span></label>
@@ -121,11 +120,9 @@
     const elFontName = $("fontName");
     const elSupport = $("supportNote");
 
-    const elText = $("text");
-    const elSize = $("size");
-    const elSizeVal = $("sizeVal");
-    const elPrec = $("prec");
-    const elPrecVal = $("precVal");
+      const elText = $("text");
+      const elPrec = $("prec");
+      const elPrecVal = $("precVal");
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
     const elSkipSpace = $("skipSpace");
@@ -148,8 +145,7 @@
       elSupport.textContent = 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。';
     }
 
-    elSize.addEventListener('input', ()=> elSizeVal.textContent = elSize.value);
-    elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
+      elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
@@ -339,7 +335,7 @@
     // 生成（1文字ずつ）
     async function generateAll(){
       if(!otFont){ setStatus('先にフォントを選択してください。'); return; }
-      const sizePx = Number(elSize.value);
+      const sizePx = 300;
       const precision = Number(elPrec.value);
       const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
       const skipSpace = elSkipSpace.checked;
