@@ -284,13 +284,13 @@
       const gp = glyph.getPath(0, font.ascender * scale, sizePx);
       const d = gp.toPathData(precision);
 
-      // バウンディングボックスから平行移動量のみ算出
+      // バウンディングボックスから横方向のみ平行移動量を算出（縦方向はベースライン基準で揃える）
       let tx = m, ty = m;
       if (typeof gp.getBoundingBox === 'function'){
         const bb = gp.getBoundingBox();
         const glyphW = bb.x2 - bb.x1;
         tx = (width - glyphW) / 2 - bb.x1;
-        ty = -bb.y1 + m;
+        // ty はベースラインを共通に保つため一定値とする
       }
 
       const style = (mode==='solid') ? `fill: black;` : `fill: none; stroke: black; stroke-width: ${strokeWidth};`;
