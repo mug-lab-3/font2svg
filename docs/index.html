@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>文字ごとのSVGアウトライン生成（Local Fonts・単一ファイル）</title>
   <style>
-    :root{--bg:#f8fafc;--fg:#0f172a;--muted:#64748b;--card:#ffffff;--ring:#e2e8f0;--pri:#0ea5e9}
+    :root{--bg:#0f0d11;--fg:#f8fafc;--muted:#94a3b8;--card:#1f1f28;--ring:#374151;--pri:#ac00ac;--accent:#00acac}
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif}
     .wrap{max-width:980px;margin:40px auto;padding:0 16px;display:grid;gap:16px}
@@ -16,30 +16,31 @@
     .btn{appearance:none;border:0;border-radius:12px;padding:10px 14px;background:var(--pri);color:#fff;cursor:pointer}
     .btn[disabled]{opacity:.5;cursor:not-allowed}
     label.inline{display:inline-flex;align-items:center;gap:8px}
-    select,textarea,input[type="number"],input[type="range"],input[type="checkbox"]{padding:8px 10px;border-radius:10px;border:1px solid var(--ring);background:#f1f5f9}
+    select,textarea,input[type="number"],input[type="range"],input[type="checkbox"]{padding:8px 10px;border-radius:10px;border:1px solid var(--ring);background:#1f2937;color:var(--fg)}
+    a{color:var(--accent)}
     textarea{min-width:420px;min-height:80px}
     input[type="range"]{vertical-align:middle}
     .help{color:var(--muted);font-size:12px}
     .status{font-size:13px;color:var(--muted);margin-left:8px}
-    .preview{min-height:260px;border:1px dashed var(--ring);border-radius:12px;background:#f8fafc;padding:10px;overflow:auto;transition:opacity .14s ease;will-change:opacity;contain:paint}
+    .preview{min-height:260px;border:1px dashed var(--ring);border-radius:12px;background:var(--card);padding:10px;overflow:auto;transition:opacity .14s ease;will-change:opacity;contain:paint}
     .preview.swap-off{opacity:0}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-    .tile{background:#fff;border:1px solid var(--ring);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
-    .tile .box{background:#ffffff;border:1px solid var(--ring);border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:160px;overflow:auto}
-    .tile .meta{font-size:12px;color:#475569;display:flex;justify-content:space-between;gap:8px}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}
+    .tile{background:var(--card);border:1px solid var(--ring);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+    .tile .box{background:var(--bg);border:1px solid var(--ring);border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:160px;overflow:auto}
+    .tile .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--accent);color:#000;font-size:12px}
 
     /* Loading overlay（一覧取得時のみ使用／フェード） */
     .loadingOverlay{
-      position:fixed; inset:0; background:rgba(15,23,42,.35);
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
       display:flex; align-items:center; justify-content:center; z-index:1000;
       opacity:0; pointer-events:none; transition:opacity .18s ease;
     }
     .loadingOverlay.show{ opacity:1; pointer-events:auto; }
-    .loadingPanel{background:#fff;border:1px solid var(--ring);border-radius:14px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px}
+    .loadingPanel{background:var(--card);border:1px solid var(--ring);border-radius:14px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px}
     .loadingText{display:flex;flex-direction:column;gap:2px}
     #loadingPct{font-size:12px;color:var(--muted);text-align:right}
-    .spinner{width:22px;height:22px;border:3px solid #e2e8f0;border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite}
+    .spinner{width:22px;height:22px;border:3px solid var(--ring);border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
@@ -311,7 +312,10 @@
       tile.className = 'tile';
       const box = document.createElement('div');
       box.className = 'box';
-      box.innerHTML = svg;
+      const previewSvg = svg
+        .replace(/fill:\s*black;/g, 'fill: #fff;')
+        .replace(/stroke:\s*black;/g, 'stroke: #fff;');
+      box.innerHTML = previewSvg;
       const meta = document.createElement('div');
       meta.className = 'meta';
       meta.innerHTML = `<span>#${idx+1}「${escapeHtml(char)}」</span>`;
