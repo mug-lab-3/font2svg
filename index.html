@@ -267,7 +267,6 @@
           </select>
         </label>
         <label class="inline">線幅 <input id="strokeW" type="number" value="5" min="0.5" step="0.5" style="width:80px"/> px</label>
-        <label class="inline">空白を除外 <input id="skipSpace" type="checkbox" checked /></label>
       </div>
       <div style="margin-top:8px">
         <span id="status" class="status"></span>
@@ -315,7 +314,6 @@
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
     const elColor = $("color");
-    const elSkipSpace = $("skipSpace");
 
     const elStatus = $("status");
 
@@ -373,9 +371,6 @@
     });
     elStrokeW.addEventListener('input', ()=>{
       queueGenerate({ instant: true, delay: 0 });
-    });
-    elSkipSpace.addEventListener('change', ()=>{
-      queueGenerate({ instant: false, delay: 0 });
     });
     elText.addEventListener('input', ()=>{
       queueGenerate({ instant: false, delay: 250 });
@@ -637,7 +632,7 @@
       const precision = Number(elPrec.value);
       const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
       const color = elColor.value;
-      const skipSpace = elSkipSpace.checked;
+      const skipSpace = true;
 
       setStatus('SVG を生成しています…');
       elDlAll.disabled = true;
