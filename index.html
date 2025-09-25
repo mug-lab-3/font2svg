@@ -25,7 +25,7 @@
     body{
       margin:0;
       background:var(--bg);
-      color:var(--fg);
+      color:var(--ink);
       font:16px/1.7 "Inter","Hiragino Kaku Gothic ProN","Noto Sans JP",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     }
     .wrap{
@@ -59,8 +59,8 @@
       font-size:15px;
     }
     .card{
-      background:var(--card);
-      border:1px solid var(--ring);
+      background:var(--panel);
+      border:1px solid var(--chip);
       border-radius:20px;
       padding:22px 24px 24px;
       box-shadow:var(--shadow);
@@ -87,7 +87,7 @@
     .btn:hover:not([disabled]){transform:translateY(-1px);box-shadow:0 18px 32px rgba(124,58,237,.28)}
     .btn:active:not([disabled]){transform:translateY(0);box-shadow:0 12px 22px rgba(124,58,237,.22)}
     .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
-    label.inline{display:inline-flex;align-items:center;gap:10px;font-weight:500;color:var(--fg)}
+    label.inline{display:inline-flex;align-items:center;gap:10px;font-weight:500;color:var(--ink)}
     select,
     textarea,
     input[type="number"],
@@ -96,9 +96,9 @@
     input[type="color"]{
       padding:10px 12px;
       border-radius:14px;
-      border:1px solid var(--ring);
-      background:var(--card-soft);
-      color:var(--fg);
+      border:1px solid var(--chip);
+      background:var(--chip);
+      color:var(--ink);
       font:inherit;
       transition:border-color .15s ease,box-shadow .15s ease;
       accent-color:var(--accent);
@@ -108,24 +108,24 @@
     input[type="number"]:focus,
     input[type="range"]:focus,
     input[type="checkbox"]:focus,
-      input[type="color"]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+      input[type="color"]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.22)}
     textarea{
       min-width:420px;
       min-height:96px;
       resize:vertical;
     }
     input[type="range"]{padding:0;background:transparent}
-    input[type="color"]{padding:0;width:52px;height:38px;border-radius:12px;background:var(--card-soft)}
-    input[type="checkbox"]{width:20px;height:20px;padding:0;border-radius:6px}
+    input[type="color"]{padding:0;width:52px;height:38px;border-radius:12px;background:var(--chip)}
+    input[type="checkbox"]{width:20px;height:20px;padding:0;border-radius:6px;background:var(--chip);border:1px solid var(--chip)}
     a{color:var(--accent-strong);text-decoration:none;font-weight:600}
     a:hover{text-decoration:underline}
     .help{color:var(--muted);font-size:13px;line-height:1.6}
     .status{font-size:14px;color:var(--muted);margin-left:12px}
     .preview{
       min-height:240px;
-      border:2px dashed var(--ring);
+      border:2px dashed var(--chip);
       border-radius:20px;
-      background:linear-gradient(180deg,#faf7ff 0%,#f0eaff 100%);
+      background:linear-gradient(180deg,rgba(34,39,53,.9) 0%,rgba(21,24,33,.92) 100%);
       padding:12px;
       overflow:auto;
       transition:opacity .18s ease;
@@ -135,21 +135,21 @@
     .preview.swap-off{opacity:0}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
     .tile{
-      background:var(--card);
-      border:1px solid var(--ring);
+      background:var(--panel);
+      border:1px solid var(--chip);
       border-radius:18px;
       padding:12px;
       display:flex;
       flex-direction:column;
       gap:10px;
-      box-shadow:0 14px 24px rgba(73,43,154,.08);
+      box-shadow:0 14px 24px rgba(12,16,28,.6);
     }
     .tile .box{
-      background-image:linear-gradient(45deg,#e6e0ff 25%,transparent 25%,transparent 75%,#e6e0ff 75%,#e6e0ff),linear-gradient(45deg,#e6e0ff 25%,transparent 25%,transparent 75%,#e6e0ff 75%,#e6e0ff);
+      background-image:linear-gradient(45deg,rgba(174,117,218,.16) 25%,transparent 25%,transparent 75%,rgba(174,117,218,.16) 75%,rgba(174,117,218,.16)),linear-gradient(45deg,rgba(174,117,218,.16) 25%,transparent 25%,transparent 75%,rgba(174,117,218,.16) 75%,rgba(174,117,218,.16));
       background-size:22px 22px;
       background-position:0 0,11px 11px;
-      background-color:#f7f3ff;
-      border:1px solid var(--ring);
+      background-color:rgba(33,38,52,.7);
+      border:1px solid var(--chip);
       border-radius:14px;
       display:flex;
       align-items:center;
@@ -173,7 +173,7 @@
     .loadingOverlay{
       position:fixed;
       inset:0;
-      background:rgba(27,22,72,.38);
+      background:rgba(11,12,16,.7);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -184,8 +184,8 @@
     }
     .loadingOverlay.show{opacity:1;pointer-events:auto}
     .loadingPanel{
-      background:var(--card);
-      border:1px solid var(--ring);
+      background:var(--panel);
+      border:1px solid var(--chip);
       border-radius:18px;
       padding:18px 22px;
       box-shadow:var(--shadow);
@@ -195,7 +195,7 @@
     }
     .loadingText{display:flex;flex-direction:column;gap:4px}
     #loadingPct{font-size:13px;color:var(--muted);text-align:right}
-    .spinner{width:26px;height:26px;border:3px solid var(--ring);border-top-color:var(--accent-strong);border-radius:50%;animation:spin 1s linear infinite}
+    .spinner{width:26px;height:26px;border:3px solid var(--chip);border-top-color:var(--accent-strong);border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
