@@ -6,15 +6,16 @@
   <title>font2svg</title>
   <style>
     :root{
-      --bg:#f3f4f6;
-      --fg:#0f172a;
-      --muted:#475569;
+      --bg:#f5f1ff;
+      --fg:#1b1648;
+      --muted:#5e5a80;
       --card:#ffffff;
-      --ring:#d4dbe8;
-      --ring-strong:#94a3b8;
-      --accent:#2563eb;
-      --accent-strong:#1d4ed8;
-      --shadow:0 18px 36px rgba(15,23,42,.08);
+      --card-soft:#f3eeff;
+      --ring:#dcd6ff;
+      --ring-strong:#b6aef5;
+      --accent:#7c3aed;
+      --accent-strong:#ec4899;
+      --shadow:0 18px 40px rgba(72,45,154,.12);
     }
     *,*::before,*::after{box-sizing:border-box}
     body{
@@ -77,10 +78,10 @@
       letter-spacing:.02em;
       cursor:pointer;
       transition:transform .18s ease,box-shadow .18s ease,opacity .2s ease;
-      box-shadow:0 12px 22px rgba(37,99,235,.25);
+      box-shadow:0 12px 26px rgba(124,58,237,.25);
     }
-    .btn:hover:not([disabled]){transform:translateY(-1px);box-shadow:0 16px 28px rgba(37,99,235,.3)}
-    .btn:active:not([disabled]){transform:translateY(0);box-shadow:0 10px 18px rgba(37,99,235,.24)}
+    .btn:hover:not([disabled]){transform:translateY(-1px);box-shadow:0 18px 32px rgba(124,58,237,.28)}
+    .btn:active:not([disabled]){transform:translateY(0);box-shadow:0 12px 22px rgba(124,58,237,.22)}
     .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
     label.inline{display:inline-flex;align-items:center;gap:10px;font-weight:500;color:var(--fg)}
     select,
@@ -92,7 +93,7 @@
       padding:10px 12px;
       border-radius:14px;
       border:1px solid var(--ring);
-      background:#f8fafc;
+      background:var(--card-soft);
       color:var(--fg);
       font:inherit;
       transition:border-color .15s ease,box-shadow .15s ease;
@@ -103,16 +104,16 @@
     input[type="number"]:focus,
     input[type="range"]:focus,
     input[type="checkbox"]:focus,
-    input[type="color"]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.18)}
+      input[type="color"]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.18)}
     textarea{
       min-width:420px;
       min-height:96px;
       resize:vertical;
     }
     input[type="range"]{padding:0;background:transparent}
-    input[type="color"]{padding:0;width:52px;height:38px;border-radius:12px}
+    input[type="color"]{padding:0;width:52px;height:38px;border-radius:12px;background:var(--card-soft)}
     input[type="checkbox"]{width:20px;height:20px;padding:0;border-radius:6px}
-    a{color:var(--accent);text-decoration:none;font-weight:500}
+    a{color:var(--accent-strong);text-decoration:none;font-weight:600}
     a:hover{text-decoration:underline}
     .help{color:var(--muted);font-size:13px;line-height:1.6}
     .status{font-size:14px;color:var(--muted);margin-left:12px}
@@ -120,7 +121,7 @@
       min-height:240px;
       border:2px dashed var(--ring);
       border-radius:20px;
-      background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);
+      background:linear-gradient(180deg,#faf7ff 0%,#f0eaff 100%);
       padding:12px;
       overflow:auto;
       transition:opacity .18s ease;
@@ -137,13 +138,13 @@
       display:flex;
       flex-direction:column;
       gap:10px;
-      box-shadow:0 12px 20px rgba(15,23,42,.06);
+      box-shadow:0 14px 24px rgba(73,43,154,.08);
     }
     .tile .box{
-      background-image:linear-gradient(45deg,#e2e8f0 25%,transparent 25%,transparent 75%,#e2e8f0 75%,#e2e8f0),linear-gradient(45deg,#e2e8f0 25%,transparent 25%,transparent 75%,#e2e8f0 75%,#e2e8f0);
+      background-image:linear-gradient(45deg,#e6e0ff 25%,transparent 25%,transparent 75%,#e6e0ff 75%,#e6e0ff),linear-gradient(45deg,#e6e0ff 25%,transparent 25%,transparent 75%,#e6e0ff 75%,#e6e0ff);
       background-size:22px 22px;
       background-position:0 0,11px 11px;
-      background-color:#f8fafc;
+      background-color:#f7f3ff;
       border:1px solid var(--ring);
       border-radius:14px;
       display:flex;
@@ -168,7 +169,7 @@
     .loadingOverlay{
       position:fixed;
       inset:0;
-      background:rgba(15,23,42,.35);
+      background:rgba(27,22,72,.38);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -190,7 +191,7 @@
     }
     .loadingText{display:flex;flex-direction:column;gap:4px}
     #loadingPct{font-size:13px;color:var(--muted);text-align:right}
-    .spinner{width:26px;height:26px;border:3px solid var(--ring);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+    .spinner{width:26px;height:26px;border:3px solid var(--ring);border-top-color:var(--accent-strong);border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
