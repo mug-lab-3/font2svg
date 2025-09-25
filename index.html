@@ -272,7 +272,6 @@
         <label class="inline">空白を除外 <input id="skipSpace" type="checkbox" checked /></label>
       </div>
       <div style="margin-top:8px">
-        <button id="btnGen" class="btn" disabled>SVGを生成</button>
         <span id="status" class="status"></span>
       </div>
     </section>
@@ -312,19 +311,26 @@
     const elFontButtonWrap = $("fontButtonWrap");
     const elListWrap = $("fontListWrap");
 
-      const elText = $("text");
-      const elPrec = $("prec");
-      const elPrecVal = $("precVal");
+    const elText = $("text");
+    const elPrec = $("prec");
+    const elPrecVal = $("precVal");
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
     const elColor = $("color");
     const elSkipSpace = $("skipSpace");
 
-    const elGen = $("btnGen");
     const elStatus = $("status");
 
     const elPreview = $("preview");
     const elDlAll = $("btnDlAll");
+
+    function showPreviewPlaceholder(){
+      if (!elPreview) return;
+      const msg = document.createElement('div');
+      msg.className = 'help';
+      msg.textContent = 'ここに各文字のSVGを表示します。';
+      elPreview.replaceChildren(msg);
+    }
 
     const PREVIEW_SIZE = 300;
     const PREVIEW_HEIGHT = 220;
@@ -332,34 +338,50 @@
 
     let otFont = null;
     let isSwitchingFont = false;
-    let lastGenerated = false;
     let currentFontName = '';
+    let autoGenTimer = null;
+
+    function queueGenerate(opts = {}){
+      const { instant = false, delay = 150 } = opts;
+      if (!otFont || isSwitchingFont) return;
+      if (autoGenTimer){
+        clearTimeout(autoGenTimer);
+        autoGenTimer = null;
+      }
+      const wait = Math.max(0, delay);
+      autoGenTimer = setTimeout(()=>{
+        autoGenTimer = null;
+        void generateAll({ instant });
+      }, wait);
+    }
 
     const supportLocal = typeof window.queryLocalFonts === 'function';
     if (!supportLocal) {
       elListBtn.disabled = true;
-      if (elGen) elGen.disabled = true;
       if (elSupport) {
         elSupport.textContent = 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。';
       }
     }
 
-      elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
-      elColor.addEventListener('input', async ()=>{
-        if (lastGenerated && !isSwitchingFont) {
-          await generateAll({ instant: true });
-        }
-      });
-      elMode.addEventListener('change', async ()=>{
-        if (lastGenerated && !isSwitchingFont) {
-          await generateAll({ instant: true });
-        }
-      });
-      elStrokeW.addEventListener('input', async ()=>{
-        if (lastGenerated && !isSwitchingFont) {
-          await generateAll({ instant: true });
-        }
-      });
+    elPrec.addEventListener('input', ()=>{
+      elPrecVal.textContent = elPrec.value;
+      queueGenerate({ instant: true, delay: 0 });
+    });
+    elColor.addEventListener('input', ()=>{
+      queueGenerate({ instant: true, delay: 0 });
+    });
+    elMode.addEventListener('change', ()=>{
+      queueGenerate({ instant: true, delay: 0 });
+    });
+    elStrokeW.addEventListener('input', ()=>{
+      queueGenerate({ instant: true, delay: 0 });
+    });
+    elSkipSpace.addEventListener('change', ()=>{
+      queueGenerate({ instant: false, delay: 0 });
+    });
+    elText.addEventListener('input', ()=>{
+      queueGenerate({ instant: false, delay: 250 });
+    });
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
 
@@ -467,12 +489,15 @@
         elList.onchange = async ()=>{
           if (isSwitchingFont) return;
           isSwitchingFont = true;
+          if (autoGenTimer){
+            clearTimeout(autoGenTimer);
+            autoGenTimer = null;
+          }
           const idx = Number(elList.value);
           const fd = supported[idx];
           if(!fd){ isSwitchingFont = false; return; }
 
-            // Keep "SVGを生成" button enabled when a font is already loaded to avoid flicker
-            elList.disabled = true; if (!otFont && elGen) elGen.disabled = true;
+          elList.disabled = true;
           showLoading('フォントを読み込んでいます…');
           updateLoadingProgress(0,1);
           try{
@@ -484,16 +509,14 @@
               elFontName.textContent = resolvedName;
             }
             currentFontName = resolvedName;
-            if (elGen) elGen.disabled = false;
             setStatus('フォントを読み込みました。');
-            if (lastGenerated) { await generateAll({ instant: false }); }
+            await generateAll({ instant: false });
           }catch(err){
             console.error(err);
             setStatus('フォントの解析に失敗しました。');
           }finally{
             hideLoading();
             elList.disabled = false;
-            if (!otFont && elGen) elGen.disabled = true;
             isSwitchingFont = false;
           }
         };
@@ -619,10 +642,14 @@
       const skipSpace = elSkipSpace.checked;
 
       setStatus('SVG を生成しています…');
+      elDlAll.disabled = true;
+      elDlAll.onclick = null;
       if (!instant) {
         elPreview.classList.add('swap-off');
         await new Promise(r => requestAnimationFrame(r));
         elPreview.innerHTML = '';
+      } else {
+        elPreview.classList.remove('swap-off');
       }
       const grid = document.createElement('div');
       grid.className = 'grid';
@@ -632,7 +659,12 @@
         if(skipSpace && /^\s$/.test(ch)) continue;
         chars.push(ch);
       }
-      if(chars.length===0){ setStatus('対象の文字がありませんでした。'); lastGenerated = false; return; }
+      if(chars.length===0){
+        setStatus('対象の文字がありませんでした。');
+        elPreview.classList.remove('swap-off');
+        showPreviewPlaceholder();
+        return;
+      }
 
       // 0埋め関数：総数の桁数に合わせる
       const total = chars.length;
@@ -652,7 +684,6 @@
 
       elPreview.replaceChildren(grid);
       elDlAll.disabled = false;
-      lastGenerated = true;
       setStatus(`生成が完了しました（${svgs.length} 文字）。`);
       if (!instant) {
         requestAnimationFrame(()=>{ elPreview.classList.remove('swap-off'); });
@@ -689,8 +720,6 @@
         URL.revokeObjectURL(a.href);
       };
     }
-
-    elGen.addEventListener('click', async ()=>{ await generateAll(); });
 
   })();
   </script>
