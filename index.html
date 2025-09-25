@@ -236,6 +236,8 @@
     </header>
 
     <section class="card">
+      <h2>出力文字設定</h2>
+
       <div class="row">
         <label class="inline" for="localList">フォント</label>
         <div class="switcher">
@@ -247,10 +249,6 @@
           </div>
         </div>
       </div>
-      <div class="row" style="justify-content:space-between;min-height:20px">
-        <span id="fontName" class="status"></span>
-        <span id="supportNote" class="status"></span>
-      </div>
 
       <div class="row">
         <label class="inline" style="align-items:flex-start">テキスト
@@ -258,7 +256,7 @@
         </label>
       </div>
       <div class="row" style="margin-top:6px">
-        <label class="inline">文字色 <input id="color" type="color" value="#000000" /></label>
+        <label class="inline">文字色 <input id="color" type="color" value="#ffffff" /></label>
       </div>
       <div class="row" style="margin-top:6px">
         <label class="inline">小数桁 <input id="prec" type="range" min="0" max="4" step="1" value="3"/> <span id="precVal">3</span></label>
@@ -277,7 +275,7 @@
     </section>
 
     <section class="card">
-      <h2>3. プレビューと一括ダウンロード</h2>
+      <h2>プレビューと一括ダウンロード</h2>
       <div class="row" style="margin-bottom:10px">
         <button id="btnDlAll" class="btn" disabled>すべてをZIPでDL</button>
       </div>
