@@ -259,7 +259,6 @@
         <label class="inline">文字色 <input id="color" type="color" value="#ffffff" /></label>
       </div>
       <div class="row" style="margin-top:6px">
-        <label class="inline">小数桁 <input id="prec" type="range" min="0" max="4" step="1" value="3"/> <span id="precVal">3</span></label>
         <label class="inline">描画モード
           <select id="mode">
             <option value="solid">塗り</option>
@@ -309,8 +308,6 @@
     const elListWrap = $("fontListWrap");
 
     const elText = $("text");
-    const elPrec = $("prec");
-    const elPrecVal = $("precVal");
     const elMode = $("mode");
     const elStrokeW = $("strokeW");
     const elColor = $("color");
@@ -331,6 +328,7 @@
     const PREVIEW_SIZE = 300;
     const PREVIEW_HEIGHT = 220;
     const OUTPUT_SIZE = 481;
+    const PRECISION = 3;
 
     let otFont = null;
     let isSwitchingFont = false;
@@ -359,10 +357,6 @@
       }
     }
 
-    elPrec.addEventListener('input', ()=>{
-      elPrecVal.textContent = elPrec.value;
-      queueGenerate({ instant: true, delay: 0 });
-    });
     elColor.addEventListener('input', ()=>{
       queueGenerate({ instant: true, delay: 0 });
     });
@@ -629,7 +623,7 @@
       const { instant = false } = opts;
       if(!otFont){ setStatus('先にフォントを選択してください。'); return; }
       const sizePx = OUTPUT_SIZE;
-      const precision = Number(elPrec.value);
+      const precision = PRECISION;
       const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
       const color = elColor.value;
       const skipSpace = true;
