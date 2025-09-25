@@ -247,6 +247,10 @@
           </div>
         </div>
       </div>
+      <div class="row" style="justify-content:space-between;min-height:20px">
+        <span id="fontName" class="status"></span>
+        <span id="supportNote" class="status"></span>
+      </div>
 
       <div class="row">
         <label class="inline" style="align-items:flex-start">テキスト
@@ -335,7 +339,9 @@
     if (!supportLocal) {
       elListBtn.disabled = true;
       if (elGen) elGen.disabled = true;
-      elSupport.textContent = 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。';
+      if (elSupport) {
+        elSupport.textContent = 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。';
+      }
     }
 
       elPrec.addEventListener('input', ()=> elPrecVal.textContent = elPrec.value);
@@ -473,8 +479,11 @@
             const blob = await fd.blob();
             const buf = await readBlobWithProgress(blob, (loaded,total)=> updateLoadingProgress(loaded,total));
             otFont = opentype.parse(buf);
-            elFontName.textContent = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
-            currentFontName = elFontName.textContent;
+            const resolvedName = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
+            if (elFontName) {
+              elFontName.textContent = resolvedName;
+            }
+            currentFontName = resolvedName;
             if (elGen) elGen.disabled = false;
             setStatus('フォントを読み込みました。');
             if (lastGenerated) { await generateAll({ instant: false }); }
