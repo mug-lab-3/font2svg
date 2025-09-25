@@ -73,8 +73,8 @@
     }
     .switcher{
       position:relative;
-      flex:1 1 auto;
-      width:100%;
+      flex:1 1 320px;
+      min-width:260px;
       min-height:52px;
     }
     .switcher .switchItem{
@@ -96,7 +96,7 @@
       transform:translateY(0);
     }
     .switcher select{
-      min-width:360px;
+      min-width:320px;
     }
     .btn{
       appearance:none;
@@ -192,6 +192,7 @@
       h1{font-size:26px}
       h2{font-size:19px}
       textarea{min-width:100%;width:100%}
+      .switcher{flex-basis:100%;min-width:100%}
       .switcher select{min-width:100%}
       .row{gap:12px}
       .card{padding:20px 18px}
@@ -236,8 +237,7 @@
 
     <section class="card">
       <div class="row">
-        <label class="inline" style="align-items:flex-start">フォント
-        </label>
+        <label class="inline" for="localList">フォント</label>
         <div class="switcher">
           <div id="fontButtonWrap" class="switchItem is-active">
             <button id="btnListLocal" class="btn">フォント読み込み</button>
