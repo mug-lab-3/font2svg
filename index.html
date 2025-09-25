@@ -71,6 +71,33 @@
       gap:16px;
       align-items:center;
     }
+    .switcher{
+      position:relative;
+      flex:1 1 auto;
+      width:100%;
+      min-height:52px;
+    }
+    .switcher .switchItem{
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:16px;
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(8px);
+      transition:opacity .24s ease, transform .24s ease;
+    }
+    .switcher .switchItem.is-active{
+      opacity:1;
+      pointer-events:auto;
+      transform:translateY(0);
+    }
+    .switcher select{
+      min-width:360px;
+    }
     .btn{
       appearance:none;
       border:0;
@@ -165,6 +192,7 @@
       h1{font-size:26px}
       h2{font-size:19px}
       textarea{min-width:100%;width:100%}
+      .switcher select{min-width:100%}
       .row{gap:12px}
       .card{padding:20px 18px}
     }
@@ -209,8 +237,14 @@
     <section class="card">
       <h2>1. フォントを選択</h2>
       <div class="row">
-        <button id="btnListLocal" class="btn">ローカルフォントを表示</button>
-        <select id="localList" style="min-width:360px;display:none"></select>
+        <div class="switcher">
+          <div id="fontButtonWrap" class="switchItem is-active">
+            <button id="btnListLocal" class="btn">ローカルフォントを表示</button>
+          </div>
+          <div id="fontListWrap" class="switchItem">
+            <select id="localList"></select>
+          </div>
+        </div>
       </div>
       <div class="help">選択中のフォント: <b id="fontName">（未選択）</b></div>
       <p class="help">この機能は Google Chrome／Microsoft Edge／Brave などの「Chromium系」ブラウザでご利用いただけます。初回は「このサイトにパソコン内のフォントの一覧を表示してよいですか？」という確認が表示されます。<strong>［許可］</strong>を選ぶと、インストール済みフォントをメニューから選択できるようになります。</p>
@@ -276,6 +310,8 @@
     const elList = $("localList");
     const elFontName = $("fontName");
     const elSupport = $("supportNote");
+    const elFontButtonWrap = $("fontButtonWrap");
+    const elListWrap = $("fontListWrap");
 
       const elText = $("text");
       const elPrec = $("prec");
@@ -325,6 +361,17 @@
       });
 
     function setStatus(msg){ elStatus.textContent = msg || ''; }
+
+    function toggleFontControls(showList){
+      if(!elFontButtonWrap || !elListWrap) return;
+      if(showList){
+        elFontButtonWrap.classList.remove('is-active');
+        elListWrap.classList.add('is-active');
+      }else{
+        elListWrap.classList.remove('is-active');
+        elFontButtonWrap.classList.add('is-active');
+      }
+    }
 
     // ファイル名の危険文字を安全化
     function safeName(s){
@@ -400,10 +447,21 @@
           updateLoadingProgress(i+1, unique.length);
         }
 
+        if (supported.length === 0) {
+          setStatus('表示可能なローカルフォントが見つかりませんでした。');
+          toggleFontControls(false);
+          return;
+        }
+
         elList.innerHTML = '<option value="">▼ フォントを選択</option>'
           + supported.map((f,i)=> `<option value="${i}">${escapeHtml(f.fullName || f.postscriptName || (f.family+' '+(f.style||'')))}</option>`).join('');
-        elList.style.display = 'inline-block';
+        toggleFontControls(true);
         setStatus(`ローカルフォント ${supported.length} 件`);
+
+        requestAnimationFrame(()=>{
+          try{ elList.focus({ preventScroll: true }); }
+          catch(_){ try{ elList.focus(); }catch(__){} }
+        });
 
         elList.onchange = async ()=>{
           if (isSwitchingFont) return;
