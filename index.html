@@ -235,24 +235,19 @@
     </header>
 
     <section class="card">
-      <h2>1. フォントを選択</h2>
       <div class="row">
+        <label class="inline" style="align-items:flex-start">フォント
+        </label>
         <div class="switcher">
           <div id="fontButtonWrap" class="switchItem is-active">
-            <button id="btnListLocal" class="btn">ローカルフォントを表示</button>
+            <button id="btnListLocal" class="btn">フォント読み込み</button>
           </div>
           <div id="fontListWrap" class="switchItem">
             <select id="localList"></select>
           </div>
         </div>
       </div>
-      <div class="help">選択中のフォント: <b id="fontName">（未選択）</b></div>
-      <p class="help">この機能は Google Chrome／Microsoft Edge／Brave などの「Chromium系」ブラウザでご利用いただけます。初回は「このサイトにパソコン内のフォントの一覧を表示してよいですか？」という確認が表示されます。<strong>［許可］</strong>を選ぶと、インストール済みフォントをメニューから選択できるようになります。</p>
-      <div class="help" id="supportNote"></div>
-    </section>
 
-    <section class="card">
-      <h2>2. テキストと出力設定</h2>
       <div class="row">
         <label class="inline" style="align-items:flex-start">テキスト
           <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
