@@ -999,6 +999,32 @@
 
       const supportLocal = typeof window.queryLocalFonts === 'function';
 
+      // ===== 診断用ヘルパ =====
+      // Console で __diag() と入力すると主要状態を取得できます。
+      window.__diag = function () {
+        try {
+          const html = document.documentElement;
+          const wrap = document.querySelector('.wrap');
+          const unsupportedMsg = document.getElementById('unsupportedMsg');
+          const loading = document.getElementById('loading');
+          return {
+            supportLocalType: typeof window.queryLocalFonts,
+            supportLocal,
+            htmlClass: html.className,
+            langAttr: html.getAttribute('lang'),
+            wrapExists: !!wrap,
+            wrapDisplay: wrap ? (function () { try { return getComputedStyle(wrap).display; } catch (e) { return 'ERR'; } })() : '(no .wrap)',
+            hasUnsupportedMsg: !!unsupportedMsg,
+            unsupportedMsgText: unsupportedMsg ? unsupportedMsg.textContent.trim() : '',
+            loadingExists: !!loading,
+            loadingVisible: loading ? loading.classList.contains('show') : false,
+            timestamp: Date.now()
+          };
+        } catch (e) {
+          return { error: String(e) };
+        }
+      };
+
       elSpinUp.addEventListener('click', () => {
         elStrokeW.stepUp();
         elStrokeW.dispatchEvent(new Event('input', { bubbles: true }));
