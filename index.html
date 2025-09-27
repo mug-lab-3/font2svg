@@ -665,7 +665,7 @@
       color: rgba(232, 234, 240, .8);
     }
 
-    /* SVG ベース緩急付き円弧スピナー */
+    /* SVG ベース緩急付き円弧スピナー（シームレス版） */
     .spinner {
       --spinner-size: 64px;
       --spinner-stroke: 6px;
@@ -678,17 +678,18 @@
       width: 100%;
       height: 100%;
       transform-origin: 50% 50%;
-      animation: spinner-rotate 1.4s linear infinite;
+      animation: spinner-rotate 2.2s linear infinite;
     }
 
+    /* 定長 + 強い緩急: dasharray 固定で dashoffset のみ非線形 */
     .spinner circle {
       fill: none;
-      stroke: var(--accent-strong);
+      stroke: var(--primary);
       stroke-width: var(--spinner-stroke);
       stroke-linecap: round;
-      stroke-dasharray: 1 200;
+      stroke-dasharray: 35 65;
       stroke-dashoffset: 0;
-      animation: spinner-dash 1.4s ease-in-out infinite;
+      animation: spinner-dash 1.6s linear infinite;
     }
 
     @keyframes spinner-rotate {
@@ -697,20 +698,50 @@
       }
     }
 
+    /* dasharray 固定: オフセットのみで「溜め→加速→減速」 */
     @keyframes spinner-dash {
       0% {
-        stroke-dasharray: 1 200;
         stroke-dashoffset: 0;
       }
 
+      6% {
+        stroke-dashoffset: -2;
+      }
+
+      14% {
+        stroke-dashoffset: -6;
+      }
+
+      24% {
+        stroke-dashoffset: -14;
+      }
+
+      36% {
+        stroke-dashoffset: -26;
+      }
+
       50% {
-        stroke-dasharray: 120 200;
-        stroke-dashoffset: -40;
+        stroke-dashoffset: -50;
+      }
+
+      64% {
+        stroke-dashoffset: -74;
+      }
+
+      76% {
+        stroke-dashoffset: -86;
+      }
+
+      86% {
+        stroke-dashoffset: -94;
+      }
+
+      94% {
+        stroke-dashoffset: -98;
       }
 
       100% {
-        stroke-dasharray: 1 200;
-        stroke-dashoffset: -160;
+        stroke-dashoffset: -100;
       }
     }
 
@@ -862,7 +893,7 @@
     <div class="loadingPanel">
       <div class="spinner" aria-hidden="true">
         <svg viewBox="0 0 50 50" role="img" aria-label="loading">
-          <circle cx="25" cy="25" r="20"></circle>
+          <circle cx="25" cy="25" r="20" pathLength="100"></circle>
         </svg>
       </div>
       <div class="loadingText">
