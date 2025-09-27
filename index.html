@@ -968,8 +968,8 @@
 
     <section class="card">
       <div class="row" style="margin-bottom:10px">
-        <button id="btnDlAll" class="btn" disabled title="全SVGをZIPで一括ダウンロード" aria-label="全SVGをZIPで一括ダウンロード"
-          data-i18n-label-ja="全SVG一括ダウンロード（ZIP）" data-i18n-label-en="Download All SVGs (ZIP)">
+        <button id="btnDlAll" class="btn" disabled data-i18n-label-ja="全SVG一括ダウンロード（ZIP）"
+          data-i18n-label-en="Download All SVGs (ZIP)">
           <span data-i18n="downloadAll">全SVG一括ダウンロード（ZIP）</span>
         </button>
       </div>
@@ -1313,10 +1313,7 @@
           if (!k) return;
           el.textContent = t(k);
         });
-        if (elDlAll) {
-          elDlAll.setAttribute('title', t('downloadAll'));
-          elDlAll.setAttribute('aria-label', t('downloadAll'));
-        }
+        // (downloadAll button no tooltip/aria-label text injection anymore)
         if (elMode) {
           const optSolid = elMode.querySelector('option[value="solid"]');
           const optStroke = elMode.querySelector('option[value="stroke"]');
