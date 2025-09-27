@@ -1379,6 +1379,7 @@
       (function enforceLocalFontAccessRequirement() {
         if (supportLocal) return;
         document.documentElement.classList.add('unsupported');
+        document.documentElement.classList.remove('booting');
         let msg = document.getElementById('unsupportedMsg');
         if (!msg) {
           msg = document.createElement('div');
