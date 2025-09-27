@@ -320,10 +320,25 @@
     const PREVIEW_MIN_HEIGHT = 240;
     const PREVIEW_BOTTOM_GAP = 24;
 
+    const parsePx = value => {
+      const num = parseFloat(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+
+    function computeBottomSpacing(node){
+      let total = 0;
+      for (let current = node.parentElement; current && current !== document.body; current = current.parentElement) {
+        const style = window.getComputedStyle(current);
+        total += parsePx(style.paddingBottom) + parsePx(style.borderBottomWidth) + parsePx(style.marginBottom);
+      }
+      return total;
+    }
+
     function updatePreviewHeight(){
       if (!elPreview) return;
       const rect = elPreview.getBoundingClientRect();
-      const available = window.innerHeight - rect.top - PREVIEW_BOTTOM_GAP;
+      const bottomSpacing = computeBottomSpacing(elPreview);
+      const available = Math.max(0, window.innerHeight - rect.top - PREVIEW_BOTTOM_GAP - bottomSpacing);
       const maxHeight = Math.max(PREVIEW_MIN_HEIGHT, window.innerHeight - PREVIEW_BOTTOM_GAP);
       const height = Math.max(PREVIEW_MIN_HEIGHT, Math.min(maxHeight, available));
       elPreview.style.height = `${height}px`;
