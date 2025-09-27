@@ -833,6 +833,14 @@
       bottom: 4px;
     }
 
+    /* 文字色 input[color] も 48px に統一 */
+    #color {
+      height: 48px;
+      width: 48px;
+      /* 正方形に調整（元は 52x38 ）*/
+      padding: 0;
+    }
+
     .header-actions {
       display: grid;
       grid-template-columns: max-content;
@@ -940,7 +948,7 @@
           <span>描画モード</span>
           <select id="mode">
             <option value="solid">塗り</option>
-            <option value="stroke">輪郭線</option>
+            <option value="stroke">枠線</option>
           </select>
         </label>
         <label class="inline" for="strokeW">
