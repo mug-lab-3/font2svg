@@ -328,10 +328,13 @@
     }
 
     .tile .box {
-      background-image: linear-gradient(45deg, rgba(174, 117, 218, .16) 25%, transparent 25%, transparent 75%, rgba(174, 117, 218, .16) 75%, rgba(174, 117, 218, .16)), linear-gradient(45deg, rgba(174, 117, 218, .16) 25%, transparent 25%, transparent 75%, rgba(174, 117, 218, .16) 75%, rgba(174, 117, 218, .16));
-      background-size: 22px 22px;
-      background-position: 0 0, 11px 11px;
-      background-color: rgba(33, 38, 52, .7);
+      --checker-base: #10151f;
+      --checker-overlay: rgba(255, 255, 255, .12);
+      background-image: linear-gradient(45deg, var(--checker-overlay) 25%, transparent 25%, transparent 75%, var(--checker-overlay) 75%, var(--checker-overlay)),
+        linear-gradient(45deg, var(--checker-overlay) 25%, transparent 25%, transparent 75%, var(--checker-overlay) 75%, var(--checker-overlay));
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+      background-color: var(--checker-base);
       border: 1px solid var(--chip);
       border-radius: 14px;
       display: flex;
@@ -606,6 +609,70 @@
         const num = parseFloat(value);
         return Number.isFinite(num) ? num : 0;
       };
+
+
+      function parseHexColor(hex) {
+        if (typeof hex !== 'string') return null;
+        const match = hex.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+        if (!match) return null;
+        let value = match[1];
+        if (value.length === 3) {
+          value = value.split('').map(ch => ch + ch).join('');
+        }
+        const intValue = parseInt(value, 16);
+        return {
+          r: (intValue >> 16) & 255,
+          g: (intValue >> 8) & 255,
+          b: intValue & 255,
+        };
+      }
+
+      function relativeLuminance(rgb) {
+        if (!rgb) return NaN;
+        const toLinear = c => {
+          const v = c / 255;
+          return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        };
+        const r = toLinear(rgb.r);
+        const g = toLinear(rgb.g);
+        const b = toLinear(rgb.b);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      }
+
+      function contrastRatio(l1, l2) {
+        if (!Number.isFinite(l1) || !Number.isFinite(l2)) return 1;
+        const [hi, lo] = l1 >= l2 ? [l1, l2] : [l2, l1];
+        return (hi + 0.05) / (lo + 0.05);
+      }
+
+      const checkerProfiles = {
+        dark: { base: '#10151f', overlay: 'rgba(255, 255, 255, .12)' },
+        light: { base: '#d8dbe5', overlay: 'rgba(0, 0, 0, .08)' },
+      };
+      const luminanceCache = new Map();
+
+      function luminanceFromHex(hex) {
+        if (!hex) return NaN;
+        if (luminanceCache.has(hex)) {
+          return luminanceCache.get(hex);
+        }
+        const rgb = parseHexColor(hex);
+        if (!rgb) return NaN;
+        const value = relativeLuminance(rgb);
+        luminanceCache.set(hex, value);
+        return value;
+      }
+
+      function computeCheckerColors(hex) {
+        const rgb = parseHexColor(hex);
+        if (!rgb) return checkerProfiles.dark;
+        const textLum = relativeLuminance(rgb);
+        const darkLum = luminanceFromHex(checkerProfiles.dark.base);
+        const lightLum = luminanceFromHex(checkerProfiles.light.base);
+        const darkContrast = contrastRatio(textLum, darkLum);
+        const lightContrast = contrastRatio(textLum, lightLum);
+        return darkContrast >= lightContrast ? checkerProfiles.dark : checkerProfiles.light;
+      }
 
       function computeBottomSpacing(node) {
         let total = 0;
@@ -948,11 +1015,15 @@
       }
 
       // タイル（個別ダウンロード名に 0 埋め連番を付与）
-      function makeTile(char, svg, idx, pad) {
+      function makeTile(char, svg, idx, pad, checkerColors) {
         const tile = document.createElement('div');
         tile.className = 'tile';
         const box = document.createElement('div');
         box.className = 'box';
+        if (checkerColors && checkerColors.base && checkerColors.overlay) {
+          box.style.setProperty('--checker-base', checkerColors.base);
+          box.style.setProperty('--checker-overlay', checkerColors.overlay);
+        }
         box.innerHTML = svg;
         const svgEl = box.querySelector('svg');
         if (svgEl) {
@@ -987,6 +1058,7 @@
         const precision = PRECISION;
         const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
         const color = elColor.value;
+        const checkerColors = computeCheckerColors(color);
         const skipSpace = true;
 
         elDlAll.disabled = true;
@@ -1022,7 +1094,7 @@
           try {
             const svg = buildSVGForChar(otFont, ch, { sizePx, precision, mode, strokeWidth, color });
             svgs.push({ ch, svg });
-            grid.appendChild(makeTile(ch, svg, i, pad));
+            grid.appendChild(makeTile(ch, svg, i, pad, checkerColors));
           } catch (err) { console.error(err); }
         }
         const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
