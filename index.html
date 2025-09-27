@@ -255,6 +255,37 @@
       contain: paint;
     }
 
+    .preview,
+    .tile .box {
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent-strong) rgba(34, 39, 53, .4);
+    }
+
+    .preview::-webkit-scrollbar,
+    .tile .box::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .preview::-webkit-scrollbar-track,
+    .tile .box::-webkit-scrollbar-track {
+      background: rgba(34, 39, 53, .4);
+      border-radius: 999px;
+    }
+
+    .preview::-webkit-scrollbar-thumb,
+    .tile .box::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      border-radius: 999px;
+      border: 2px solid rgba(21, 24, 33, .92);
+      background-clip: padding-box;
+    }
+
+    .preview::-webkit-scrollbar-thumb:hover,
+    .tile .box::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, var(--accent-strong), var(--primary));
+    }
+
     .preview.is-loading {
       display: flex;
       align-items: center;
