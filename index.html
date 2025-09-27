@@ -895,8 +895,8 @@
           <option value="en">English</option>
         </select>
         <div class="title-block">
-          <h1>Font2SVG - Text to SVG Converter</h1>
-          <p class="help">
+          <h1 data-i18n="appTitle">Font2SVG - Text to SVG Converter</h1>
+          <p class="help" data-i18n="appDesc">
             指定されたフォント・文字からSVGを生成します。
           </p>
         </div>
@@ -914,13 +914,13 @@
       <div class="row">
         <label class="inline" for="localList">
           <span class="material-symbols-outlined" aria-hidden="true">font_download</span>
-          <span>フォント</span>
+          <span data-i18n="font">フォント</span>
         </label>
         <div class="fontControls">
           <div class="switcher">
             <div id="fontButtonWrap" class="switchItem is-active">
               <button id="btnListLocal" class="btn"><span class="material-symbols-outlined">font_download</span>
-                フォント読み込み</button>
+                <span data-i18n="loadFonts">フォント読み込み</span></button>
             </div>
             <div id="fontListWrap" class="switchItem">
               <select id="localList"></select>
@@ -933,27 +933,27 @@
       <div class="row">
         <label class="inline" for="text">
           <span class="material-symbols-outlined" aria-hidden="true">text_fields</span>
-          <span>テキスト</span>
+          <span data-i18n="text">テキスト</span>
         </label>
         <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
       </div>
       <div class="row">
         <label class="inline" for="color">
           <span class="material-symbols-outlined" aria-hidden="true">palette</span>
-          <span>文字色</span>
+          <span data-i18n="color">文字色</span>
           <input id="color" type="color" value="#ffffff" />
         </label>
         <label class="inline" for="mode">
           <span class="material-symbols-outlined" aria-hidden="true">format_paint</span>
-          <span>描画モード</span>
+          <span data-i18n="mode">描画モード</span>
           <select id="mode">
-            <option value="solid">塗り</option>
-            <option value="stroke">枠線</option>
+            <option value="solid" data-i18n="solid">塗り</option>
+            <option value="stroke" data-i18n="stroke">枠線</option>
           </select>
         </label>
         <label class="inline" for="strokeW">
           <span class="material-symbols-outlined" aria-hidden="true">line_weight</span>
-          <span>線幅</span>
+          <span data-i18n="strokeWidth">線幅</span>
           <div class="number-input-wrapper">
             <input id="strokeW" type="number" value="5" min="0.5" step="0.5" />
             <div class="spin-buttons">
@@ -961,7 +961,7 @@
               <button type="button" class="spin-down">▼</button>
             </div>
           </div>
-          <span>px</span>
+          <span data-i18n="px">px</span>
         </label>
       </div>
     </section>
@@ -970,12 +970,12 @@
       <div class="row" style="margin-bottom:10px">
         <button id="btnDlAll" class="btn" disabled title="全SVGをZIPで一括ダウンロード" aria-label="全SVGをZIPで一括ダウンロード"
           data-i18n-label-ja="全SVG一括ダウンロード（ZIP）" data-i18n-label-en="Download All SVGs (ZIP)">
-          全SVG一括ダウンロード（ZIP）
+          <span data-i18n="downloadAll">全SVG一括ダウンロード（ZIP）</span>
         </button>
       </div>
       <div id="preview" class="preview">
         <div id="previewScroll" class="preview-scroll">
-          <div class="help">ここに各文字のSVGを表示します。</div>
+          <div class="help" data-i18n="previewPlaceholder">ここに各文字のSVGを表示します。</div>
         </div>
       </div>
     </section>
@@ -989,7 +989,7 @@
         </svg>
       </div>
       <div class="loadingText">
-        <div id="loadingMsg">処理中です…</div>
+        <div id="loadingMsg" data-i18n="loadingProcessing">処理中です…</div>
         <div id="loadingPct"></div>
       </div>
     </div>
@@ -1160,7 +1160,7 @@
 
       const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
-      function showPreviewLoading(message = 'SVG を生成しています…') {
+      function showPreviewLoading(message = t('loadingGenerating')) {
         if (!elPreviewScroll) return;
         previewLoadingActive = true;
         previewLoadingSince = now();
@@ -1192,7 +1192,7 @@
         clearPreviewLoading();
         const msg = document.createElement('div');
         msg.className = 'help';
-        msg.textContent = 'ここに各文字のSVGを表示します。';
+        msg.textContent = t('previewPlaceholder');
         elPreviewScroll.replaceChildren(msg);
         updatePreviewHeight();
       }
@@ -1252,6 +1252,96 @@
       }
 
       const elLang = $("lang");
+
+      // ================= I18N =================
+      const I18N = {
+        ja: {
+          appTitle: 'Font2SVG - Text to SVG Converter',
+          appDesc: '指定されたフォント・文字からSVGを生成します。',
+          font: 'フォント',
+          loadFonts: 'フォント読み込み',
+          text: 'テキスト',
+          color: '文字色',
+          mode: '描画モード',
+          solid: '塗り',
+          stroke: '枠線',
+          strokeWidth: '線幅',
+          px: 'px',
+          downloadAll: '全SVG一括ダウンロード（ZIP）',
+          previewPlaceholder: 'ここに各文字のSVGを表示します。',
+          loadingGenerating: 'SVG を生成しています…',
+          loadingProcessing: '処理中です…',
+          loadingFonts: 'フォントを読み込んでいます…',
+          zipError: 'JSZip を読み込めませんでした。',
+          svgButton: 'SVG'
+        },
+        en: {
+          appTitle: 'Font2SVG - Text to SVG Converter',
+          appDesc: 'Generate SVGs from the specified font and characters.',
+          font: 'Font',
+          loadFonts: 'Load Fonts',
+          text: 'Text',
+          color: 'Color',
+          mode: 'Render Mode',
+          solid: 'Fill',
+          stroke: 'Stroke',
+          strokeWidth: 'Stroke Width',
+          px: 'px',
+          downloadAll: 'Download All SVGs (ZIP)',
+          previewPlaceholder: 'SVGs for each character will be shown here.',
+          loadingGenerating: 'Generating SVG…',
+          loadingProcessing: 'Processing…',
+          loadingFonts: 'Loading fonts…',
+          zipError: 'Failed to load JSZip.',
+          svgButton: 'SVG'
+        }
+      };
+
+      function getCurrentLocale() { // override (original is below; keep single source)
+        if (elLang && elLang.value === 'ja') return 'ja';
+        return 'en';
+      }
+
+      function t(key) {
+        const loc = getCurrentLocale();
+        return (I18N[loc] && I18N[loc][key]) || (I18N.en && I18N.en[key]) || key;
+      }
+
+      function applyTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const k = el.getAttribute('data-i18n');
+          if (!k) return;
+          el.textContent = t(k);
+        });
+        if (elDlAll) {
+          elDlAll.setAttribute('title', t('downloadAll'));
+          elDlAll.setAttribute('aria-label', t('downloadAll'));
+        }
+        if (elMode) {
+          const optSolid = elMode.querySelector('option[value="solid"]');
+          const optStroke = elMode.querySelector('option[value="stroke"]');
+          if (optSolid) optSolid.textContent = t('solid');
+          if (optStroke) optStroke.textContent = t('stroke');
+        }
+        document.querySelectorAll('.char-dl-btn').forEach(btn => {
+          const icon = btn.querySelector('.material-symbols-outlined');
+          btn.textContent = '';
+          if (icon) btn.appendChild(icon); else {
+            const ic = document.createElement('span');
+            ic.className = 'material-symbols-outlined';
+            ic.textContent = 'download';
+            btn.appendChild(ic);
+          }
+          btn.appendChild(document.createTextNode(' ' + t('svgButton')));
+        });
+        if (elPreviewScroll && elPreviewScroll.children.length === 1 && elPreviewScroll.firstElementChild && elPreviewScroll.firstElementChild.matches('.help')) {
+          elPreviewScroll.firstElementChild.textContent = t('previewPlaceholder');
+        }
+        const loadingMsg = document.getElementById('loadingMsg');
+        if (loadingMsg && loadingMsg.closest('.loadingOverlay')?.classList.contains('show')) {
+          loadingMsg.textContent = t('loadingProcessing');
+        }
+      }
 
       elColor.addEventListener('input', () => {
         queueGenerate({ instant: true, delay: 0 });
@@ -1400,10 +1490,7 @@
         return variant;
       }
 
-      function getCurrentLocale() {
-        if (elLang && elLang.value === 'ja') return 'ja';
-        return 'en';
-      }
+      // duplicate getCurrentLocale removed (primary definition with i18n above)
 
       async function loadVariantBuffer(variant) {
         if (!variant || !variant.descriptor || typeof variant.descriptor.blob !== 'function') return null;
@@ -1755,6 +1842,7 @@
         elLang.addEventListener('change', () => {
           updateFamilyDisplayNames();
           applyFamilyOptionLabels();
+          applyTranslations();
         });
       }
       resetStyleSelect();
@@ -1777,7 +1865,7 @@
         const pctEl = document.getElementById('loadingPct');
         if (el) {
           el.classList.add('show');
-          if (msgEl) msgEl.textContent = msg || '処理中です…';
+          if (msgEl) msgEl.textContent = msg || t('loadingProcessing');
           if (pctEl) pctEl.textContent = '';
         }
       };
@@ -1799,7 +1887,7 @@
         if (!supportLocal) return;
         try {
           elListBtn.disabled = true;
-          showLoading('フォントを読み込んでいます…');
+          showLoading(t('loadingFonts'));
           resetStyleSelect();
 
           const fonts = await window.queryLocalFonts();
@@ -2007,7 +2095,7 @@
         meta.innerHTML = `<span>#${idx + 1}「${escapeHtml(char)}」</span>`;
         const btn = document.createElement('button');
         btn.className = 'btn char-dl-btn';
-        btn.innerHTML = '<span class="material-symbols-outlined">download</span> SVG';
+        btn.innerHTML = '<span class="material-symbols-outlined">download</span> ' + t('svgButton');
         btn.addEventListener('click', () => {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
@@ -2081,7 +2169,7 @@
 
         // 一括ZIP
         elDlAll.onclick = async () => {
-          if (!window.JSZip) { alert('JSZip を読み込めませんでした。'); return; }
+          if (!window.JSZip) { alert(t('zipError')); return; }
           const zip = new JSZip();
           for (let i = 0; i < svgs.length; i++) {
             const { ch, svg } = svgs[i];
@@ -2146,6 +2234,9 @@
           console.warn('overlay scrollbar detection failed', e);
         }
       })();
+
+      // 初期翻訳適用
+      applyTranslations();
 
     })();
   </script>
