@@ -252,13 +252,23 @@
       background: linear-gradient(180deg, rgba(34, 39, 53, .9) 0%, rgba(21, 24, 33, .92) 100%);
       padding: 12px;
       overflow: auto;
-      transition: opacity .18s ease;
-      will-change: opacity;
       contain: paint;
     }
 
-    .preview.swap-off {
-      opacity: 0
+    .preview.is-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .preview-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .grid {
@@ -603,8 +613,42 @@
         }
       }
 
+      const MIN_PREVIEW_LOADING_MS = 240;
+      let previewLoadingActive = false;
+      let previewLoadingSince = 0;
+
+      const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+      function showPreviewLoading(message = 'SVG を生成しています…') {
+        if (!elPreview) return;
+        previewLoadingActive = true;
+        previewLoadingSince = now();
+        elPreview.classList.add('is-loading');
+        const msg = document.createElement('div');
+        msg.className = 'preview-loading';
+        msg.textContent = message;
+        elPreview.replaceChildren(msg);
+        updatePreviewHeight();
+      }
+
+      async function ensurePreviewLoadingDuration() {
+        if (!previewLoadingActive) return;
+        const elapsed = now() - previewLoadingSince;
+        if (elapsed < MIN_PREVIEW_LOADING_MS) {
+          await new Promise(resolve => setTimeout(resolve, MIN_PREVIEW_LOADING_MS - elapsed));
+        }
+      }
+
+      function clearPreviewLoading() {
+        previewLoadingActive = false;
+        if (elPreview) {
+          elPreview.classList.remove('is-loading');
+        }
+      }
+
       function showPreviewPlaceholder() {
         if (!elPreview) return;
+        clearPreviewLoading();
         const msg = document.createElement('div');
         msg.className = 'help';
         msg.textContent = 'ここに各文字のSVGを表示します。';
@@ -767,12 +811,11 @@
             const fd = supported[idx];
             if (!fd) { isSwitchingFont = false; return; }
 
+            showPreviewLoading('SVG を生成しています…');
             elList.disabled = true;
-            showLoading('フォントを読み込んでいます…');
-            updateLoadingProgress(0, 1);
             try {
               const blob = await fd.blob();
-              const buf = await readBlobWithProgress(blob, (loaded, total) => updateLoadingProgress(loaded, total));
+              const buf = await readBlobWithProgress(blob);
               otFont = opentype.parse(buf);
               const resolvedName = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
               if (elFontName) {
@@ -783,7 +826,6 @@
             } catch (err) {
               console.error(err);
             } finally {
-              hideLoading();
               elList.disabled = false;
               isSwitchingFont = false;
             }
@@ -911,11 +953,10 @@
         elDlAll.disabled = true;
         elDlAll.onclick = null;
         if (!instant) {
-          elPreview.classList.add('swap-off');
+          showPreviewLoading();
           await new Promise(r => requestAnimationFrame(r));
-          elPreview.innerHTML = '';
         } else {
-          elPreview.classList.remove('swap-off');
+          clearPreviewLoading();
         }
         const grid = document.createElement('div');
         grid.className = 'grid';
@@ -926,7 +967,7 @@
           chars.push(ch);
         }
         if (chars.length === 0) {
-          elPreview.classList.remove('swap-off');
+          await ensurePreviewLoadingDuration();
           showPreviewPlaceholder();
           return;
         }
@@ -947,15 +988,11 @@
         }
         const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
 
+        await ensurePreviewLoadingDuration();
+        clearPreviewLoading();
         elPreview.replaceChildren(grid);
         updatePreviewHeight();
         elDlAll.disabled = false;
-        if (!instant) {
-          requestAnimationFrame(() => { elPreview.classList.remove('swap-off'); updatePreviewHeight(); });
-        } else {
-          elPreview.classList.remove('swap-off');
-          updatePreviewHeight();
-        }
 
         // 一括ZIP
         elDlAll.onclick = async () => {
