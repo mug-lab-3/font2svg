@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="booting">
 
 <head>
   <meta charset="utf-8" />
@@ -50,6 +50,25 @@
       font-size: 1.2em;
       line-height: 1.7;
       font-family: "Inter", "Hiragino Kaku Gothic ProN", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* 初期レイアウト安定まで一時的に不可視化（CLS低減）。JS失敗時フォールバックで5s後フェードイン */
+    html.booting body {
+      opacity: 0;
+    }
+
+    body {
+      transition: opacity .25s ease;
+    }
+
+    @keyframes booting-fallback-show {
+      to {
+        opacity: 1;
+      }
+    }
+
+    html.booting body.booting-fallback {
+      animation: booting-fallback-show 0s linear 5s forwards;
     }
 
     .preview-scroll {
@@ -140,6 +159,36 @@
       min-height: 52px;
       width: clamp(280px, 36vw, 400px);
       max-width: 100%;
+    }
+
+    /* フォントファミリ select/ボタンとスタイル select の縦位置を揃える */
+    .fontControls,
+    .switcher,
+    .switcher .switchItem,
+    .styleSelect {
+      min-height: 52px;
+    }
+
+    .switcher .switchItem,
+    .styleSelect:not(.is-hidden) {
+      display: flex;
+      align-items: center;
+    }
+
+    /* ネイティブ select の行高ばらつきを吸収（表示時のみ適用） */
+    .switcher select,
+    .styleSelect:not(.is-hidden) {
+      height: 52px;
+      line-height: 52px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* フォント読み込みボタンの高さを select と揃える */
+    #btnListLocal.btn {
+      height: 52px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .switcher .switchItem {
@@ -2010,7 +2059,15 @@
           ro.observe(layoutRoot);
         }
       }
-      requestAnimationFrame(updatePreviewHeight);
+      // 初期描画: コンテンツを不可視状態で高さ計算を2回行い（compact判定を含む可能性）安定後に表示
+      requestAnimationFrame(() => {
+        try {
+          updatePreviewHeight();
+          updatePreviewHeight(); // 二度実行で compact 切替を含む場合も初期シフトを吸収
+        } finally {
+          document.documentElement.classList.remove('booting');
+        }
+      });
 
       // === Overlay Scrollbar 判定 ===
       (function detectOverlayScrollbars() {
