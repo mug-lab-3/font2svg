@@ -150,7 +150,6 @@
     .status{font-size:14px;color:var(--muted);margin-left:12px}
     .preview{
       min-height:240px;
-      max-height:min(420px,60vh);
       border:2px dashed var(--chip);
       border-radius:20px;
       background:linear-gradient(180deg,rgba(34,39,53,.9) 0%,rgba(21,24,33,.92) 100%);
@@ -318,12 +317,26 @@
     const elPreview = $("preview");
     const elDlAll = $("btnDlAll");
 
+    const PREVIEW_MIN_HEIGHT = 240;
+    const PREVIEW_BOTTOM_GAP = 24;
+
+    function updatePreviewHeight(){
+      if (!elPreview) return;
+      const rect = elPreview.getBoundingClientRect();
+      const available = window.innerHeight - rect.top - PREVIEW_BOTTOM_GAP;
+      const maxHeight = Math.max(PREVIEW_MIN_HEIGHT, window.innerHeight - PREVIEW_BOTTOM_GAP);
+      const height = Math.max(PREVIEW_MIN_HEIGHT, Math.min(maxHeight, available));
+      elPreview.style.height = `${height}px`;
+      elPreview.style.maxHeight = `${height}px`;
+    }
+
     function showPreviewPlaceholder(){
       if (!elPreview) return;
       const msg = document.createElement('div');
       msg.className = 'help';
       msg.textContent = 'ここに各文字のSVGを表示します。';
       elPreview.replaceChildren(msg);
+      updatePreviewHeight();
     }
 
     const PREVIEW_SIZE = 300;
@@ -671,12 +684,14 @@
       const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
 
       elPreview.replaceChildren(grid);
+      updatePreviewHeight();
       elDlAll.disabled = false;
       setStatus(`生成が完了しました（${svgs.length} 文字）。`);
       if (!instant) {
-        requestAnimationFrame(()=>{ elPreview.classList.remove('swap-off'); });
+        requestAnimationFrame(()=>{ elPreview.classList.remove('swap-off'); updatePreviewHeight(); });
       } else {
         elPreview.classList.remove('swap-off');
+        updatePreviewHeight();
       }
 
       // 一括ZIP
@@ -708,6 +723,16 @@
         URL.revokeObjectURL(a.href);
       };
     }
+
+    window.addEventListener('resize', ()=>{ requestAnimationFrame(updatePreviewHeight); });
+    if (window.ResizeObserver) {
+      const layoutRoot = document.querySelector('.wrap');
+      if (layoutRoot) {
+        const ro = new ResizeObserver(()=>{ requestAnimationFrame(updatePreviewHeight); });
+        ro.observe(layoutRoot);
+      }
+    }
+    requestAnimationFrame(updatePreviewHeight);
 
   })();
   </script>
