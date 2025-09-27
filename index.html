@@ -798,6 +798,41 @@
       flex: 1;
     }
 
+    /* =============================
+       描画モード select と 線幅 number を 48px 高さに統一
+       （フォント切替用 52px 群とは独立させ、他影響を避ける）
+       ============================= */
+    #mode,
+    #strokeW {
+      height: 48px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* number input は文字の縦位置を自然に保つため line-height は抑制 */
+    #strokeW {
+      line-height: 1.2;
+    }
+
+    /* number 入力のラッパを合わせ、中身を中央寄せ */
+    .number-input-wrapper {
+      height: 48px;
+      display: flex;
+      align-items: center;
+    }
+
+    .number-input-wrapper input[type="number"] {
+      height: 100%;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* スピンボタンの上下余白を微調整（従来 2px→4px で中央寄せ） */
+    .number-input-wrapper .spin-buttons {
+      top: 4px;
+      bottom: 4px;
+    }
+
     .header-actions {
       display: grid;
       grid-template-columns: max-content;
