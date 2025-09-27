@@ -245,12 +245,6 @@
       line-height: 1.6
     }
 
-    .status {
-      font-size: 14px;
-      color: var(--muted);
-      margin-left: 12px
-    }
-
     .preview {
       min-height: 240px;
       border: 2px dashed var(--chip);
@@ -511,9 +505,6 @@
         <label class="inline">線幅 <input id="strokeW" type="number" value="5" min="0.5" step="0.5" style="width:80px" />
           px</label>
       </div>
-      <div style="margin-top:8px">
-        <span id="status" class="status"></span>
-      </div>
     </section>
 
     <section class="card">
@@ -554,8 +545,6 @@
       const elMode = $("mode");
       const elStrokeW = $("strokeW");
       const elColor = $("color");
-
-      const elStatus = $("status");
 
       const elPreview = $("preview");
       const elDlAll = $("btnDlAll");
@@ -668,8 +657,6 @@
         queueGenerate({ instant: false, delay: 250 });
       });
 
-      function setStatus(msg) { elStatus.textContent = msg || ''; }
-
       function toggleFontControls(showList) {
         if (!elFontButtonWrap || !elListWrap) return;
         if (showList) {
@@ -756,7 +743,6 @@
           }
 
           if (supported.length === 0) {
-            setStatus('表示可能なローカルフォントが見つかりませんでした。');
             toggleFontControls(false);
             return;
           }
@@ -764,7 +750,6 @@
           elList.innerHTML = '<option value="">▼ フォントを選択</option>'
             + supported.map((f, i) => `<option value="${i}">${escapeHtml(f.fullName || f.postscriptName || (f.family + ' ' + (f.style || '')))}</option>`).join('');
           toggleFontControls(true);
-          setStatus(`ローカルフォント ${supported.length} 件`);
 
           requestAnimationFrame(() => {
             try { elList.focus({ preventScroll: true }); }
@@ -794,11 +779,9 @@
                 elFontName.textContent = resolvedName;
               }
               currentFontName = resolvedName;
-              setStatus('フォントを読み込みました。');
               await generateAll({ instant: false });
             } catch (err) {
               console.error(err);
-              setStatus('フォントの解析に失敗しました。');
             } finally {
               hideLoading();
               elList.disabled = false;
@@ -807,7 +790,6 @@
           };
         } catch (err) {
           console.error(err);
-          setStatus('ローカルフォントの取得に失敗しました。');
         } finally {
           hideLoading();
           elListBtn.disabled = false;
@@ -919,14 +901,13 @@
       // 生成（1文字ずつ）
       async function generateAll(opts = {}) {
         const { instant = false } = opts;
-        if (!otFont) { setStatus('先にフォントを選択してください。'); return; }
+        if (!otFont) { return; }
         const sizePx = OUTPUT_SIZE;
         const precision = PRECISION;
         const mode = elMode.value; const strokeWidth = Number(elStrokeW.value);
         const color = elColor.value;
         const skipSpace = true;
 
-        setStatus('SVG を生成しています…');
         elDlAll.disabled = true;
         elDlAll.onclick = null;
         if (!instant) {
@@ -945,7 +926,6 @@
           chars.push(ch);
         }
         if (chars.length === 0) {
-          setStatus('対象の文字がありませんでした。');
           elPreview.classList.remove('swap-off');
           showPreviewPlaceholder();
           return;
@@ -970,7 +950,6 @@
         elPreview.replaceChildren(grid);
         updatePreviewHeight();
         elDlAll.disabled = false;
-        setStatus(`生成が完了しました（${svgs.length} 文字）。`);
         if (!instant) {
           requestAnimationFrame(() => { elPreview.classList.remove('swap-off'); updatePreviewHeight(); });
         } else {
