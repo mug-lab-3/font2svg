@@ -1211,7 +1211,7 @@
       if (!supportLocal) {
         elListBtn.disabled = true;
         if (elSupport) {
-          elSupport.textContent = 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。';
+          elSupport.textContent = t('localFontUnsupported');
         }
       }
 
@@ -1239,7 +1239,8 @@
           zipError: 'JSZip を読み込めませんでした。',
           svgButton: 'SVG',
           charQuoteOpen: '「',
-          charQuoteClose: '」'
+          charQuoteClose: '」',
+          localFontUnsupported: 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。'
         },
         en: {
           appTitle: 'Font2SVG - Text to SVG Converter',
@@ -1261,7 +1262,8 @@
           zipError: 'Failed to load JSZip.',
           svgButton: 'SVG',
           charQuoteOpen: '"',
-          charQuoteClose: '"'
+          charQuoteClose: '"',
+          localFontUnsupported: 'Local Font Access is not available in this environment. Please use a Chromium-based browser.'
         }
       };
 
