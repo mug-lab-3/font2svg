@@ -145,11 +145,11 @@
 
     .card .row:nth-child(2) {
       align-items: flex-start;
-      margin-top: 6px;
+      margin-top: 12px;
     }
 
     .card .row:nth-child(3) {
-      margin-top: 6px;
+      margin-top: 12px;
     }
 
     .switcher {
@@ -1635,8 +1635,23 @@
         });
         elStyleList.appendChild(frag);
         updateStyleDisabledState(family);
-        elStyleList.selectedIndex = 0;
-        void switchFontDescriptor(family.variants[0]);
+        // --- Regular 優先選択ロジック ---
+        // 条件: Italic/Oblique でない かつ weight が 400 相当、またはラベルが 'Regular'
+        let regularIndex = -1;
+        for (let i = 0; i < family.variants.length; i++) {
+          const v = family.variants[i];
+          const snapped = snapWeightValue(v.weightValue);
+          const label = (v.displayLabel || buildVariantLabel(v) || '').toLowerCase();
+          const isRegularWeight = snapped === 400 || /\b400\b/.test(String(v.weightLabel));
+          const explicitRegular = label === 'regular' || /regular/i.test(v.styleName || '') || /regular/i.test(v.weightLabel || '');
+          if (!v.isItalic && !v.isOblique && (explicitRegular || isRegularWeight)) {
+            regularIndex = i;
+            break;
+          }
+        }
+        if (regularIndex < 0) regularIndex = 0; // フォールバック
+        elStyleList.selectedIndex = regularIndex;
+        void switchFontDescriptor(family.variants[regularIndex]);
       }
 
       function updateFamilyDisplayNames() {
