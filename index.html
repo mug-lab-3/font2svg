@@ -777,7 +777,13 @@
 
     <section class="card">
       <div class="row" style="margin-bottom:10px">
-        <button id="btnDlAll" class="btn" disabled>すべてをZIPでDL</button>
+        <button id="btnDlAll" class="btn" disabled
+          title="全SVGをZIPで一括ダウンロード"
+          aria-label="全SVGをZIPで一括ダウンロード"
+          data-i18n-label-ja="全SVG一括ダウンロード（ZIP）"
+          data-i18n-label-en="Download All SVGs (ZIP)">
+          全SVG一括ダウンロード（ZIP）
+        </button>
       </div>
       <div id="preview" class="preview">
         <div class="help">ここに各文字のSVGを表示します。</div>
@@ -1787,7 +1793,7 @@
         meta.innerHTML = `<span>#${idx + 1}「${escapeHtml(char)}」</span>`;
         const btn = document.createElement('button');
         btn.className = 'btn char-dl-btn';
-        btn.innerHTML = '<span class="material-symbols-outlined">download</span> DL';
+        btn.innerHTML = '<span class="material-symbols-outlined">download</span> SVG';
         btn.addEventListener('click', () => {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
