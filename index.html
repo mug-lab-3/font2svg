@@ -20,6 +20,14 @@
       --panel: #151821;
       --ink: #e8eaf0;
       --chip: #222735;
+      --wrap-margin-bottom: 64px;
+      --wrap-padding-bottom: 48px;
+      --card-padding-bottom: 24px;
+    }
+    :root.preview-compact{
+      --wrap-margin-bottom: 28px;
+      --wrap-padding-bottom: 20px;
+      --card-padding-bottom: 16px;
     }
     *,*::before,*::after{box-sizing:border-box}
     body{
@@ -30,8 +38,8 @@
     }
     .wrap{
       max-width:960px;
-      margin:56px auto 64px;
-      padding:0 24px 48px;
+      margin:56px auto var(--wrap-margin-bottom);
+      padding:0 24px var(--wrap-padding-bottom);
       display:grid;
       gap:28px;
     }
@@ -62,7 +70,7 @@
       background:var(--panel);
       border:1px solid var(--chip);
       border-radius:20px;
-      padding:22px 24px 24px;
+      padding:22px 24px var(--card-padding-bottom);
       box-shadow:var(--shadow);
     }
     .row{
@@ -188,14 +196,14 @@
     .tile .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
     footer{margin-top:8px;color:var(--muted);font-size:12px;text-align:center}
     @media (max-width:720px){
-      .wrap{margin:32px auto 48px;padding:0 18px 36px;gap:22px}
+      .wrap{margin:32px auto var(--wrap-margin-bottom);padding:0 18px var(--wrap-padding-bottom);gap:22px}
       h1{font-size:26px}
       h2{font-size:19px}
       textarea{min-width:100%;width:100%}
       .switcher{flex-basis:100%;min-width:100%}
       .switcher select{min-width:100%}
       .row{gap:12px}
-      .card{padding:20px 18px}
+      .card{padding:20px 18px var(--card-padding-bottom)}
     }
 
     /* Loading overlay（一覧取得時のみ使用／フェード） */
@@ -316,6 +324,7 @@
 
     const elPreview = $("preview");
     const elDlAll = $("btnDlAll");
+    const rootEl = document.documentElement;
 
     const PREVIEW_MIN_HEIGHT = 240;
     const PREVIEW_BOTTOM_GAP = 24;
@@ -334,8 +343,16 @@
       return total;
     }
 
-    function updatePreviewHeight(){
-      if (!elPreview) return;
+    let isCompactLayout = false;
+
+    function setCompactLayout(next){
+      if (isCompactLayout === next) return false;
+      isCompactLayout = next;
+      rootEl.classList.toggle('preview-compact', next);
+      return true;
+    }
+
+    function applyPreviewHeight(){
       const rect = elPreview.getBoundingClientRect();
       const bottomSpacing = computeBottomSpacing(elPreview);
       const available = Math.max(0, window.innerHeight - rect.top - PREVIEW_BOTTOM_GAP - bottomSpacing);
@@ -343,6 +360,23 @@
       const height = Math.max(PREVIEW_MIN_HEIGHT, Math.min(maxHeight, available));
       elPreview.style.height = `${height}px`;
       elPreview.style.maxHeight = `${height}px`;
+      return height;
+    }
+
+    function updatePreviewHeight(){
+      if (!elPreview) return;
+
+      setCompactLayout(false);
+      applyPreviewHeight();
+
+      const rect = elPreview.getBoundingClientRect();
+      const gap = window.innerHeight - rect.bottom;
+      if (gap > PREVIEW_BOTTOM_GAP + 32) {
+        const changed = setCompactLayout(true);
+        if (changed) {
+          applyPreviewHeight();
+        }
+      }
     }
 
     function showPreviewPlaceholder(){
