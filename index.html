@@ -26,9 +26,7 @@
       --wrap-margin-bottom: 64px;
       --wrap-padding-bottom: 48px;
       --card-padding-bottom: 24px;
-      /* Physicalオフセット: 角丸領域とスクロールバー/内容物を離す */
       --preview-scroll-offset: 12px;
-      /* 調整用。overlay scrollbar 環境では 0 に */
     }
 
     :root.preview-compact {
@@ -52,7 +50,6 @@
       font-family: "Inter", "Hiragino Kaku Gothic ProN", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    /* 初期レイアウト安定まで一時的に不可視化（CLS低減）。JS失敗時フォールバックで5s後フェードイン */
     html.booting body {
       opacity: 0;
     }
@@ -76,7 +73,6 @@
       inset: 0;
       right: var(--preview-scroll-offset);
       padding: 14px 12px 14px 12px;
-      /* 上下余白増しで角丸欠け軽減 */
       box-sizing: border-box;
       overflow: auto;
       -webkit-overflow-scrolling: touch;
@@ -161,7 +157,6 @@
       max-width: 100%;
     }
 
-    /* フォントファミリ select/ボタンとスタイル select の縦位置を揃える */
     .fontControls,
     .switcher,
     .switcher .switchItem,
@@ -175,7 +170,6 @@
       align-items: center;
     }
 
-    /* ネイティブ select の行高ばらつきを吸収（表示時のみ適用） */
     .switcher select,
     .styleSelect:not(.is-hidden) {
       height: 52px;
@@ -184,7 +178,6 @@
       padding-bottom: 0;
     }
 
-    /* フォント読み込みボタンの高さを select と揃える */
     #btnListLocal.btn {
       height: 52px;
       display: inline-flex;
@@ -455,26 +448,19 @@
     }
 
     .preview {
-      /* outer wrapper: handles border radius & clipping, inner handles scrolling */
       min-height: 240px;
       border: 1px solid var(--chip);
       border-radius: 20px;
       background: linear-gradient(180deg, rgba(34, 39, 53, .9) 0%, rgba(21, 24, 33, .92) 100%);
       overflow: hidden;
-      /* 角丸外を確実にカット */
       position: relative;
       contain: paint;
     }
 
-    /* （二重定義防止）preview-scroll の余白は上部で統合済み */
-
-    /* Restored custom scrollbar (lost in refactor 07a7120) */
     .preview-scroll,
     .tile .box {
       scrollbar-width: thin;
-      /* Firefox */
       scrollbar-color: var(--primary) var(--chip);
-      /* thumb track */
     }
 
     .preview-scroll::-webkit-scrollbar,
@@ -483,7 +469,6 @@
       height: 10px;
     }
 
-    /* duplicate .preview block removed (consolidated above) */
 
     .tile .foot {
       display: flex;
@@ -513,7 +498,6 @@
       background: var(--accent-strong);
     }
 
-    /* overlay scrollbar 環境向け（macOS など）: オフセットは意味がないので 0 に */
     .overlay-scrollbars .preview-scroll {
       right: 0;
     }
@@ -585,17 +569,13 @@
       font-size: 1em;
       color: var(--muted);
       display: flex;
-      /* foot 内では左寄せし、右ボタンとの間を自動スペース化 */
       justify-content: flex-start;
       align-items: center;
       gap: 4px;
       white-space: nowrap;
       padding: 0 0 0 2px;
-      /* 左に2px余白追加 */
       margin-right: auto;
     }
-
-    /* (削除済) 旧 .tile .foot 定義は下部に統合済 */
 
     footer {
       margin-top: 8px;
@@ -659,7 +639,6 @@
       }
     }
 
-    /* Loading overlay（一覧取得時のみ使用／フェード） */
     .loadingOverlay {
       position: fixed;
       inset: 0;
@@ -670,7 +649,6 @@
       gap: 18px;
       padding: 32px;
       background: rgba(5, 6, 10, 0.80);
-      /* 単色半透明 */
       color: #fff;
       text-align: center;
       z-index: 1000;
@@ -714,7 +692,6 @@
       color: rgba(232, 234, 240, .8);
     }
 
-    /* SVG ベース緩急付き円弧スピナー（シームレス版） */
     .spinner {
       --spinner-size: 64px;
       --spinner-stroke: 6px;
@@ -730,7 +707,6 @@
       animation: spinner-rotate 2.2s linear infinite;
     }
 
-    /* 定長 + 強い緩急: dasharray 固定で dashoffset のみ非線形 */
     .spinner circle {
       fill: none;
       stroke: var(--primary);
@@ -747,7 +723,6 @@
       }
     }
 
-    /* dasharray 固定: オフセットのみで「溜め→加速→減速」 */
     @keyframes spinner-dash {
       0% {
         stroke-dashoffset: 0;
@@ -798,10 +773,6 @@
       flex: 1;
     }
 
-    /* =============================
-       描画モード select と 線幅 number を 48px 高さに統一
-       （フォント切替用 52px 群とは独立させ、他影響を避ける）
-       ============================= */
     #mode,
     #strokeW {
       height: 48px;
@@ -809,12 +780,10 @@
       padding-bottom: 0;
     }
 
-    /* number input は文字の縦位置を自然に保つため line-height は抑制 */
     #strokeW {
       line-height: 1.2;
     }
 
-    /* number 入力のラッパを合わせ、中身を中央寄せ */
     .number-input-wrapper {
       height: 48px;
       display: flex;
@@ -827,17 +796,14 @@
       padding-bottom: 0;
     }
 
-    /* スピンボタンの上下余白を微調整（従来 2px→4px で中央寄せ） */
     .number-input-wrapper .spin-buttons {
       top: 4px;
       bottom: 4px;
     }
 
-    /* 文字色 input[color] も 48px に統一 */
     #color {
       height: 48px;
       width: 48px;
-      /* 正方形に調整（元は 52x38 ）*/
       padding: 0;
     }
 
@@ -881,8 +847,6 @@
       height: 24px;
       border-radius: 50%;
     }
-
-    /* 旧 spin アニメーションは不要 */
   </style>
 </head>
 
@@ -1297,7 +1261,7 @@
         }
       };
 
-      function getCurrentLocale() { // override (original is below; keep single source)
+      function getCurrentLocale() {
         if (elLang && elLang.value === 'ja') return 'ja';
         return 'en';
       }
@@ -1313,7 +1277,6 @@
           if (!k) return;
           el.textContent = t(k);
         });
-        // (downloadAll button no tooltip/aria-label text injection anymore)
         if (elMode) {
           const optSolid = elMode.querySelector('option[value="solid"]');
           const optStroke = elMode.querySelector('option[value="stroke"]');
@@ -1340,12 +1303,10 @@
         }
       }
 
-      // --- 初期言語選択: ブラウザ設定 (Japanese 系なら ja それ以外 en) ---
       (function initLocaleFromBrowser() {
         try {
           if (!elLang) return;
           const navLang = (navigator.languages && navigator.languages[0]) || navigator.language || '';
-          // ja, ja-JP, ja_JP などを日本語扱い
           const preferJa = /^ja(?:[-_]|$)/i.test(navLang);
           const initial = preferJa ? 'ja' : 'en';
           if (elLang.value !== initial) {
@@ -1504,7 +1465,6 @@
         return variant;
       }
 
-      // duplicate getCurrentLocale removed (primary definition with i18n above)
 
       async function loadVariantBuffer(variant) {
         if (!variant || !variant.descriptor || typeof variant.descriptor.blob !== 'function') return null;
@@ -1779,8 +1739,6 @@
         });
         elStyleList.appendChild(frag);
         updateStyleDisabledState(family);
-        // --- Regular 優先選択ロジック ---
-        // 条件: Italic/Oblique でない かつ weight が 400 相当、またはラベルが 'Regular'
         let regularIndex = -1;
         for (let i = 0; i < family.variants.length; i++) {
           const v = family.variants[i];
@@ -1793,7 +1751,7 @@
             break;
           }
         }
-        if (regularIndex < 0) regularIndex = 0; // フォールバック
+        if (regularIndex < 0) regularIndex = 0;
         elStyleList.selectedIndex = regularIndex;
         void switchFontDescriptor(family.variants[regularIndex]);
       }
@@ -1857,13 +1815,11 @@
           updateFamilyDisplayNames();
           applyFamilyOptionLabels();
           applyTranslations();
-          // <html lang> を現在の選択に同期
           document.documentElement.setAttribute('lang', getCurrentLocale());
         });
       }
       resetStyleSelect();
 
-      // ファイル名の危険文字を安全化
       function safeName(s) {
         return String(s ?? 'LocalFont').replace(/[\\/:*?"<>|\r\n]/g, '_').trim() || 'LocalFont';
       }
@@ -2013,28 +1969,20 @@
         }
       });
 
-      // 文字→SVG
       function buildSVGForChar(font, ch, opts) {
         const { sizePx, precision, mode, strokeWidth, color } = opts;
         const scale = sizePx / font.unitsPerEm;
         const glyph = font.charToGlyph ? font.charToGlyph(ch) : font.stringToGlyphs(ch)[0];
-
-        // 固定サイズの viewBox を用意し、文字位置のみ調整する
-        const m = sizePx * 0.08; // マージン
+        const m = sizePx * 0.08;
         const width = Math.ceil(font.unitsPerEm * scale + 2 * m);
         const height = Math.ceil((font.ascender - font.descender) * scale + 2 * m);
-
-        // 描画パスを取得（ベースラインをフォントアセンダ位置に合わせる）
         const gp = glyph.getPath(0, font.ascender * scale, sizePx);
         const d = gp.toPathData(precision);
-
-        // バウンディングボックスから横方向のみ平行移動量を算出（縦方向はベースライン基準で揃える）
         let tx = m, ty = m;
         if (typeof gp.getBoundingBox === 'function') {
           const bb = gp.getBoundingBox();
           const glyphW = bb.x2 - bb.x1;
           tx = (width - glyphW) / 2 - bb.x1;
-          // ty はベースラインを共通に保つため一定値とする
         }
 
         const style = (mode === 'solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
@@ -2042,12 +1990,11 @@
         return svg;
       }
 
-      // テキスト全体 → SVG
       function buildSVGForText(text, opts) {
         if (!otFont) return '';
         const { sizePx, precision, mode, strokeWidth, color } = opts;
         const scale = sizePx / otFont.unitsPerEm;
-        const m = sizePx * 0.08; // マージン
+        const m = sizePx * 0.08;
 
         const lineHeight = (otFont.ascender - otFont.descender) * scale;
         const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
@@ -2090,7 +2037,6 @@
         for (const ch of Array.from(noNL)) yield ch;
       }
 
-      // タイル（個別ダウンロード名に 0 埋め連番を付与）
       function makeTile(char, svg, idx, pad, checkerColors) {
         const tile = document.createElement('div');
         tile.className = 'tile';
@@ -2126,7 +2072,6 @@
         return tile;
       }
 
-      // 生成（1文字ずつ）
       async function generateAll(opts = {}) {
         const { instant = false } = opts;
         if (!otFont) { return; }
@@ -2159,7 +2104,6 @@
           return;
         }
 
-        // 0埋め関数：総数の桁数に合わせる
         const total = chars.length;
         const width = String(total).length;
         const pad = n => String(n).padStart(width, '0');
@@ -2183,7 +2127,6 @@
         updatePreviewHeight();
         elDlAll.disabled = false;
 
-        // 一括ZIP
         elDlAll.onclick = async () => {
           if (!window.JSZip) { alert(t('zipError')); return; }
           const zip = new JSZip();
@@ -2196,7 +2139,6 @@
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
 
-          // ZIP名：日時とフォント名（安全化、空白はハイフンに変換）を付与
           const dt = new Date();
           const y = dt.getFullYear();
           const m = String(dt.getMonth() + 1).padStart(2, '0');
@@ -2221,17 +2163,14 @@
           ro.observe(layoutRoot);
         }
       }
-      // 初期描画: コンテンツを不可視状態で高さ計算を2回行い（compact判定を含む可能性）安定後に表示
       requestAnimationFrame(() => {
         try {
           updatePreviewHeight();
-          updatePreviewHeight(); // 二度実行で compact 切替を含む場合も初期シフトを吸収
+          updatePreviewHeight();
         } finally {
           document.documentElement.classList.remove('booting');
         }
       });
-
-      // === Overlay Scrollbar 判定 ===
       (function detectOverlayScrollbars() {
         try {
           const test = document.createElement('div');
@@ -2240,18 +2179,15 @@
           inner.style.height = '200px';
           test.appendChild(inner);
           document.body.appendChild(test);
-          const scrollbarWidth = test.offsetWidth - test.clientWidth; // 物理スクロールバー幅
+          const scrollbarWidth = test.offsetWidth - test.clientWidth;
           document.body.removeChild(test);
           if (scrollbarWidth <= 2) {
-            // macOS の overlay 等: オフセット無効化
             document.documentElement.classList.add('overlay-scrollbars');
           }
         } catch (e) {
           console.warn('overlay scrollbar detection failed', e);
         }
       })();
-
-      // 初期翻訳適用
       applyTranslations();
 
     })();
