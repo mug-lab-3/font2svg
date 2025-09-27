@@ -197,6 +197,20 @@
       color: white;
     }
 
+    .char-dl-btn {
+      padding: 6px 12px;
+    }
+
+    .char-dl-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .char-dl-btn[disabled] {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
     .btn:hover:not([disabled]) {
       outline: 2px solid var(--accent-strong);
       outline-offset: 2px;
@@ -1772,7 +1786,7 @@
         meta.className = 'meta';
         meta.innerHTML = `<span>#${idx + 1}「${escapeHtml(char)}」</span>`;
         const btn = document.createElement('button');
-        btn.className = 'btn';
+        btn.className = 'btn char-dl-btn';
         btn.innerHTML = '<span class="material-symbols-outlined">download</span> DL';
         btn.addEventListener('click', () => {
           const a = document.createElement('a');
