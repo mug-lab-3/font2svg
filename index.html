@@ -1237,7 +1237,9 @@
           loadingProcessing: '処理中です…',
           loadingFonts: 'フォントを読み込んでいます…',
           zipError: 'JSZip を読み込めませんでした。',
-          svgButton: 'SVG'
+          svgButton: 'SVG',
+          charQuoteOpen: '「',
+          charQuoteClose: '」'
         },
         en: {
           appTitle: 'Font2SVG - Text to SVG Converter',
@@ -1257,7 +1259,9 @@
           loadingProcessing: 'Processing…',
           loadingFonts: 'Loading fonts…',
           zipError: 'Failed to load JSZip.',
-          svgButton: 'SVG'
+          svgButton: 'SVG',
+          charQuoteOpen: '"',
+          charQuoteClose: '"'
         }
       };
 
@@ -1283,6 +1287,25 @@
           if (optSolid) optSolid.textContent = t('solid');
           if (optStroke) optStroke.textContent = t('stroke');
         }
+        // 既存タイル: 元文字を抽出し正規化してから現在言語の引用符で再構築（重複を防止）
+        document.querySelectorAll('.tile .meta span').forEach(span => {
+          const text = span.textContent || '';
+          const numMatch = text.match(/^#(\d+)/);
+          if (!numMatch) return;
+          const index = numMatch[1];
+          // 既に data-char-original に保持していればそれを使う
+          let original = span.dataset.charOriginal;
+          if (!original) {
+            let rest = text.slice(numMatch[0].length); // remove leading #<n>
+            rest = rest.trim();
+            // 先頭・末尾に連続する引用符候補（全角/半角）を削除
+            rest = rest.replace(/^[「"“”']+/, '').replace(/[」"“”']+$/, '');
+            // 念のため再度トリム
+            original = rest.trim();
+            span.dataset.charOriginal = original; // キャッシュ
+          }
+          span.textContent = `#${index} ${t('charQuoteOpen') || ''}${original}${t('charQuoteClose') || ''}`;
+        });
         document.querySelectorAll('.char-dl-btn').forEach(btn => {
           const icon = btn.querySelector('.material-symbols-outlined');
           btn.textContent = '';
@@ -2054,7 +2077,11 @@
         }
         const meta = document.createElement('div');
         meta.className = 'meta';
-        meta.innerHTML = `<span>#${idx + 1}「${escapeHtml(char)}」</span>`;
+        const metaSpan = document.createElement('span');
+        metaSpan.dataset.charOriginal = char; // 元文字を保持（言語切替で再利用）
+        // 初期生成時の表示（番号と引用符の間にスペースを統一）
+        metaSpan.textContent = `#${idx + 1} ${t('charQuoteOpen') || ''}${char}${t('charQuoteClose') || ''}`;
+        meta.appendChild(metaSpan);
         const btn = document.createElement('button');
         btn.className = 'btn char-dl-btn';
         btn.innerHTML = '<span class="material-symbols-outlined">download</span> ' + t('svgButton');
