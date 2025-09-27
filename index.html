@@ -1340,6 +1340,23 @@
         }
       }
 
+      // --- 初期言語選択: ブラウザ設定 (Japanese 系なら ja それ以外 en) ---
+      (function initLocaleFromBrowser() {
+        try {
+          if (!elLang) return;
+          const navLang = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+          // ja, ja-JP, ja_JP などを日本語扱い
+          const preferJa = /^ja(?:[-_]|$)/i.test(navLang);
+          const initial = preferJa ? 'ja' : 'en';
+          if (elLang.value !== initial) {
+            elLang.value = initial;
+          }
+          document.documentElement.setAttribute('lang', initial);
+        } catch (e) {
+          console.warn('locale init failed', e);
+        }
+      })();
+
       elColor.addEventListener('input', () => {
         queueGenerate({ instant: true, delay: 0 });
       });
@@ -1840,6 +1857,8 @@
           updateFamilyDisplayNames();
           applyFamilyOptionLabels();
           applyTranslations();
+          // <html lang> を現在の選択に同期
+          document.documentElement.setAttribute('lang', getCurrentLocale());
         });
       }
       resetStyleSelect();
