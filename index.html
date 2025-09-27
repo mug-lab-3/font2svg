@@ -151,8 +151,8 @@
     }
 
     .btn:hover:not([disabled]) {
-      outline: 3px solid var(--accent-strong);
-      outline-offset: 3px;
+      outline: 2px solid var(--accent-strong);
+      outline-offset: 2px;
     }
 
     .btn:active:not([disabled]) {
@@ -164,8 +164,8 @@
     }
 
     .btn:focus-visible {
-      outline: 3px solid var(--accent);
-      outline-offset: 3px;
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .btn[disabled] {
@@ -897,8 +897,37 @@
             return;
           }
 
-          elList.innerHTML = '<option value="">▼ フォントを選択</option>'
-            + supported.map((f, i) => `<option value="${i}">${escapeHtml(f.fullName || f.postscriptName || (f.family + ' ' + (f.style || '')))}</option>`).join('');
+          elList.innerHTML = '';
+          const frag = document.createDocumentFragment();
+
+          const placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = '▼ フォントを選択';
+          frag.appendChild(placeholder);
+
+          const toLabel = (fd) => {
+            const base = fd.fullName || fd.postscriptName;
+            if (base) return base;
+            const family = fd.family || '';
+            const style = fd.style ? ` ${fd.style}` : '';
+            return (family + style).trim() || 'Local Font';
+          };
+
+          const assignOptionFont = (option, fd) => {
+            const familyName = quoteFontFamily(fd.family || fd.fullName || fd.postscriptName);
+            if (!familyName) return;
+            option.style.fontFamily = `${familyName}, sans-serif`;
+          };
+
+          supported.forEach((fd, i) => {
+            const option = document.createElement('option');
+            option.value = String(i);
+            option.textContent = toLabel(fd);
+            assignOptionFont(option, fd);
+            frag.appendChild(option);
+          });
+
+          elList.appendChild(frag);
           toggleFontControls(true);
 
           requestAnimationFrame(() => {
@@ -1008,6 +1037,13 @@
       }
 
       function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c])); }
+
+      function quoteFontFamily(name) {
+        if (!name) return '';
+        const text = String(name).trim();
+        if (!text) return '';
+        return '"' + text.replace(/"/g, '\\"') + '"';
+      }
 
       function* iterCharsIgnoringNewlines(str) {
         const noNL = String(str).replace(/\r\n?/g, '\n').replace(/\n/g, '');
