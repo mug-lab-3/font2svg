@@ -141,6 +141,10 @@
       transition: opacity .24s ease, transform .24s ease;
     }
 
+    #fontButtonWrap {
+      width: fit-content;
+    }
+
     .switcher .switchItem.is-active {
       opacity: 1;
       pointer-events: auto;
@@ -175,7 +179,7 @@
       appearance: none;
       border: 0;
       border-radius: 12px;
-      padding: 11px 22px;
+      padding: 11px 16px;
       background: var(--primary);
       color: #fff;
       font-weight: 600;
@@ -183,6 +187,14 @@
       cursor: pointer;
       transition: transform .18s ease, opacity .2s ease;
       outline: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      width: fit-content;
+    }
+
+    .btn .material-symbols-outlined {
+      color: white;
     }
 
     .btn:hover:not([disabled]) {
@@ -687,7 +699,8 @@
         <div class="fontControls">
           <div class="switcher">
             <div id="fontButtonWrap" class="switchItem is-active">
-              <button id="btnListLocal" class="btn">フォント読み込み</button>
+              <button id="btnListLocal" class="btn"><span class="material-symbols-outlined">font_download</span>
+                フォント読み込み</button>
             </div>
             <div id="fontListWrap" class="switchItem">
               <select id="localList"></select>
@@ -1745,7 +1758,7 @@
         meta.innerHTML = `<span>#${idx + 1}「${escapeHtml(char)}」</span>`;
         const btn = document.createElement('button');
         btn.className = 'btn';
-        btn.textContent = 'このSVGをDL';
+        btn.innerHTML = '<span class="material-symbols-outlined">download</span> DL';
         btn.addEventListener('click', () => {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
