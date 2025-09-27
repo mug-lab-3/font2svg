@@ -109,6 +109,15 @@
       align-items: center;
     }
 
+    .card .row:nth-child(2) {
+      align-items: flex-start;
+      margin-top: 6px;
+    }
+
+    .card .row:nth-child(3) {
+      margin-top: 6px;
+    }
+
     .switcher {
       position: relative;
       flex: 0 1 360px;
@@ -688,14 +697,14 @@
         </div>
       </div>
 
-      <div class="row" style="align-items:flex-start">
+      <div class="row">
         <label class="inline" for="text">
           <span class="material-symbols-outlined" aria-hidden="true">text_fields</span>
           <span>テキスト</span>
         </label>
         <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
       </div>
-      <div class="row" style="margin-top:6px">
+      <div class="row">
         <label class="inline" for="color">
           <span class="material-symbols-outlined" aria-hidden="true">palette</span>
           <span>文字色</span>
