@@ -386,16 +386,23 @@
       contain: paint;
     }
 
-    .preview,
-    .tile .box {
-      scrollbar-width: thin;
-      scrollbar-color: var(--primary) var(--chip);
+    .preview {
+      min-height: 240px;
+      border: 2px dashed var(--chip);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(34, 39, 53, .9) 0%, rgba(21, 24, 33, .92) 100%);
+      padding: 12px;
+      overflow: auto;
+      contain: paint;
     }
 
-    .preview::-webkit-scrollbar,
-    .tile .box::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
+    .tile .foot {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      border: 0;
+      border-radius: 0;
     }
 
     .preview::-webkit-scrollbar-track,
@@ -477,29 +484,24 @@
       justify-content: center;
       min-height: 170px;
       overflow: auto;
-      padding: 8px;
+      padding: 8px 21px 8px 8px;
     }
 
     .tile .meta {
       font-size: 1em;
       color: var(--muted);
       display: flex;
-      justify-content: space-between;
+      /* foot 内では左寄せし、右ボタンとの間を自動スペース化 */
+      justify-content: flex-start;
       align-items: center;
       gap: 4px;
       white-space: nowrap;
-      padding: 0px 0;
+      padding: 0 0 0 2px;
+      /* 左に2px余白追加 */
+      margin-right: auto;
     }
 
-    .tile .foot {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 4px;
-      padding: 8px;
-      border: 1px solid var(--chip);
-      border-radius: 14px;
-    }
+    /* (削除済) 旧 .tile .foot 定義は下部に統合済 */
 
     footer {
       margin-top: 8px;
@@ -1780,7 +1782,7 @@
           URL.revokeObjectURL(a.href);
         });
         const foot = document.createElement('div');
-        foot.style.display = 'flex'; foot.style.gap = '8px';
+        foot.className = 'foot';
         foot.appendChild(meta); foot.appendChild(btn);
         tile.appendChild(box); tile.appendChild(foot);
         return tile;
