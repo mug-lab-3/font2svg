@@ -38,17 +38,13 @@
     }
     .wrap{
       max-width:960px;
-      margin:56px auto var(--wrap-margin-bottom);
-      padding:0 24px var(--wrap-padding-bottom);
+      margin:8px auto var(--wrap-margin-bottom);
+      padding:0 24px 48px var(--wrap-padding-bottom);
       display:grid;
       gap:28px;
     }
-    header{
-      text-align:center;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
+    header{position:sticky;top:0;z-index:100;background:linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0));backdrop-filter:blur(6px);}
+    header .wrap{display:flex;align-items:flex-start;gap:24px;padding:0px;}
     h1{
       font-size:32px;
       font-weight:700;
@@ -233,19 +229,31 @@
     .loadingText{display:flex;flex-direction:column;gap:4px}
     #loadingPct{font-size:13px;color:var(--muted);text-align:right}
     .spinner{width:26px;height:26px;border:3px solid var(--chip);border-top-color:var(--accent-strong);border-radius:50%;animation:spin 1s linear infinite}
+    .title-block{flex:1;}
+    .header-actions{display:grid;grid-template-columns:max-content;justify-items:end;gap:6px;margin-left:auto;}
+    .header-actions > *{justify-self:end;}
+    .x-link{text-decoration:none;padding:6px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--primary);background:transparent;color:#fff;font-size:1.2rem;}
+    .x-link:hover{opacity:.8}
+    .x-link img{width:24px;height:24px;border-radius:50%;}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>文字ごとのSVGアウトライン生成</h1>
-      <p class="help">お使いの端末にインストールされているフォントを選び、入力テキスト（改行は無視）を<strong>1文字ごとに独立したSVG</strong>に変換します。処理はすべてお使いのブラウザ内で完結し、入力文字列やフォントデータが外部に送信されることはありません。</p>
+      <div class="wrap">
+        <div class="title-block">
+          <h1>文字ごとのSVGアウトライン生成</h1>
+          <p class="help">お使いの端末にインストールされているフォントを選び、入力テキスト（改行は無視）を<strong>1文字ごとに独立したSVG</strong>に変換します。処理はすべてお使いのブラウザ内で完結し、入力文字列やフォントデータが外部に送信されることはありません。</p>
+        </div>
+        <div class="header-actions">
+          <a class="x-link" href="https://x.com/MugLab3" target="_blank" rel="noopener noreferrer"><img src="https://unavatar.io/github/mug-lab-3" alt="MugLab3 icon" />Mug on X</a>
+          <span id="version"></span>
+        </div>
+      </div>
     </header>
 
     <section class="card">
-      <h2>出力文字設定</h2>
-
       <div class="row">
         <label class="inline" for="localList">フォント</label>
         <div class="switcher">
@@ -281,7 +289,6 @@
     </section>
 
     <section class="card">
-      <h2>プレビューと一括ダウンロード</h2>
       <div class="row" style="margin-bottom:10px">
         <button id="btnDlAll" class="btn" disabled>すべてをZIPでDL</button>
       </div>
