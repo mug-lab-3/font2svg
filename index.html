@@ -875,6 +875,11 @@
         900: 'Black',
       };
 
+      const loadBufferCache = new WeakMap();
+      const fontFacePromiseCache = new WeakMap();
+      const previewFamilyNameMap = new Map();
+      let previewFamilyCounter = 0;
+
       let fontFamilies = [];
       let otFont = null;
       let isSwitchingFont = false;
@@ -975,6 +980,78 @@
       function weightNameFromValue(weight) {
         const snapped = snapWeightValue(weight);
         return Number.isFinite(snapped) ? (WEIGHT_NAME_BY_CLASS[snapped] || '') : '';
+      }
+
+      async function loadVariantBuffer(variant) {
+        if (!variant || !variant.descriptor || typeof variant.descriptor.blob !== 'function') return null;
+        if (!loadBufferCache.has(variant)) {
+          const promise = (async () => {
+            const blob = await variant.descriptor.blob();
+            const buffer = await blob.arrayBuffer();
+            variant.buffer = buffer;
+            return buffer;
+          })();
+          loadBufferCache.set(variant, promise);
+        }
+        try {
+          return await loadBufferCache.get(variant);
+        } catch (err) {
+          loadBufferCache.delete(variant);
+          throw err;
+        }
+      }
+
+      function ensurePreviewFamilyName(variant) {
+        const key = variant.postscriptName || variant.fullName || `${variant.familyName}-${variant.styleName}-${variant.weightLabel}`;
+        if (!previewFamilyNameMap.has(key)) {
+          previewFamilyNameMap.set(key, `__lf_${++previewFamilyCounter}`);
+        }
+        const name = previewFamilyNameMap.get(key);
+        variant.fontFaceFamily = name;
+        return name;
+      }
+
+      async function ensureFontFaceForVariant(variant) {
+        if (!variant || typeof window.FontFace !== 'function') return null;
+        if (variant.fontFaceFamily && document.fonts && document.fonts.check(`1em ${quoteFontFamily(variant.fontFaceFamily)}`)) {
+          return variant.fontFaceFamily;
+        }
+        if (!fontFacePromiseCache.has(variant)) {
+          const promise = (async () => {
+            const buffer = await loadVariantBuffer(variant);
+            if (!buffer) return null;
+            const familyName = ensurePreviewFamilyName(variant);
+            const source = new Uint8Array(buffer);
+            const fontFace = new FontFace(familyName, source);
+            await fontFace.load();
+            document.fonts.add(fontFace);
+            return fontFace.family || familyName;
+          })();
+          fontFacePromiseCache.set(variant, promise);
+        }
+        try {
+          const loadedFamily = await fontFacePromiseCache.get(variant);
+          if (loadedFamily) {
+            variant.fontFaceFamily = loadedFamily;
+          }
+          return loadedFamily;
+        } catch (err) {
+          fontFacePromiseCache.delete(variant);
+          console.error(err);
+          return null;
+        }
+      }
+
+      function applyOptionPreview(option, variant) {
+        if (!option || !variant) return;
+        const family = variant.fontFaceFamily || variant.familyName;
+        if (family) {
+          const stack = variant.fontFaceFamily ? `${quoteFontFamily(variant.fontFaceFamily)}, ${quoteFontFamily(variant.familyName) || 'sans-serif'}` : `${quoteFontFamily(family)}, sans-serif`;
+          option.style.fontFamily = stack;
+        }
+        option.style.fontStyle = variant.isItalic ? 'italic' : (variant.isOblique ? 'oblique' : 'normal');
+        const weight = snapWeightValue(variant.weightValue);
+        option.style.fontWeight = Number.isFinite(weight) ? String(weight) : '';
       }
 
       function buildVariantFromDescriptor(fd) {
@@ -1125,10 +1202,9 @@
         if (elList) elList.disabled = true;
         if (elStyleList) elStyleList.disabled = true;
         try {
+          const buffer = await loadVariantBuffer(variant);
+          otFont = opentype.parse(buffer);
           const fd = variant.descriptor;
-          const blob = await fd.blob();
-          const buf = await blob.arrayBuffer();
-          otFont = opentype.parse(buf);
           const resolvedName = variant.fullName || variant.postscriptName || fd.fullName || fd.postscriptName || `${variant.familyName || ''} ${variant.styleName || ''}`.trim() || 'Local Font';
           if (elFontName) elFontName.textContent = resolvedName;
           currentFontName = resolvedName;
@@ -1296,6 +1372,18 @@
             elList.selectedIndex = 0;
             handleFamilyChange();
           }
+
+          fontFamilies.forEach((family, index) => {
+            const option = elList.options[index];
+            const previewVariant = family.variants && family.variants[0];
+            if (!option || !previewVariant) return;
+            applyOptionPreview(option, previewVariant);
+            void ensureFontFaceForVariant(previewVariant).then(familyName => {
+              if (familyName && option) {
+                applyOptionPreview(option, previewVariant);
+              }
+            });
+          });
         } catch (err) {
           console.error(err);
         } finally {
