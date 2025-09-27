@@ -1445,7 +1445,7 @@
         if (!supportLocal) return;
         try {
           elListBtn.disabled = true;
-          showLoading('ローカルフォントを取得しています…');
+          showLoading('フォントを読み込んでいます…');
           resetStyleSelect();
 
           const fonts = await window.queryLocalFonts();
@@ -1465,17 +1465,44 @@
               const blob = await fd.blob();
               const headBuf = await blob.slice(0, 4).arrayBuffer();
               if (isCollectionBuffer(headBuf)) {
+                updateLoadingProgress(i + 1, unique.length);
                 continue;
               }
-              variants.push(buildVariantFromDescriptor(fd));
+              const variant = buildVariantFromDescriptor(fd);
+              const buffer = await blob.arrayBuffer();
+              variant.buffer = buffer;
+              // enrich locale names
+              try {
+                const font = opentype.parse(buffer);
+                const ja = extractFamilyNameFromFont(font, JA_LOCALES, variant.familyName);
+                const en = extractFamilyNameFromFont(font, EN_LOCALES, variant.familyName || ja);
+                variant.familyNameJa = ja || variant.familyName;
+                variant.familyNameEn = en || ja || variant.familyName;
+                const primary = variant.familyNameEn || variant.familyNameJa || variant.familyName;
+                if (primary) {
+                  variant.familyName = primary;
+                  variant.familyKey = primary.toLowerCase();
+                }
+              } catch (e) {
+                console.error(e);
+                variant.familyNameJa = variant.familyName;
+                variant.familyNameEn = variant.familyName;
+              }
+              variant.hasLocalizedNames = true;
+              // FontFace
+              const familyName = ensurePreviewFamilyName(variant);
+              const source = new Uint8Array(buffer);
+              const fontFace = new FontFace(familyName, source);
+              await fontFace.load();
+              document.fonts.add(fontFace);
+              variant.fontFaceFamily = fontFace.family || familyName;
+              variants.push(variant);
             } catch (e) {
               console.error(e);
             } finally {
               updateLoadingProgress(i + 1, unique.length);
             }
           }
-
-          await Promise.all(variants.map(enrichVariantLocaleNames));
 
           fontFamilies = prepareFamilyEntries(variants);
           updateFamilyDisplayNames();
@@ -1519,11 +1546,6 @@
             const previewVariant = family.variants && family.variants[0];
             if (!option || !previewVariant) return;
             applyOptionPreview(option, previewVariant);
-            void ensureFontFaceForVariant(previewVariant).then(familyName => {
-              if (familyName && option) {
-                applyOptionPreview(option, previewVariant);
-              }
-            });
           });
         } catch (err) {
           console.error(err);
