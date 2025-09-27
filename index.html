@@ -847,6 +847,20 @@
       height: 24px;
       border-radius: 50%;
     }
+
+    /* Support note (Local Font Access unsupported) */
+    #supportNote {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      min-height: 0;
+      /* will grow when text inserted */
+    }
+
+    #supportNote:empty {
+      display: none;
+    }
   </style>
 </head>
 
@@ -891,6 +905,7 @@
             </div>
           </div>
           <select id="styleList" class="styleSelect is-hidden" disabled aria-label="スタイル"></select>
+          <div id="supportNote" aria-live="polite"></div>
         </div>
       </div>
 
@@ -981,6 +996,8 @@
 
       const elSpinUp = elStrokeW.parentElement.querySelector('.spin-up');
       const elSpinDown = elStrokeW.parentElement.querySelector('.spin-down');
+
+      const supportLocal = typeof window.queryLocalFonts === 'function';
 
       elSpinUp.addEventListener('click', () => {
         elStrokeW.stepUp();
@@ -1207,13 +1224,7 @@
         }, wait);
       }
 
-      const supportLocal = typeof window.queryLocalFonts === 'function';
-      if (!supportLocal) {
-        elListBtn.disabled = true;
-        if (elSupport) {
-          elSupport.textContent = t('localFontUnsupported');
-        }
-      }
+      // Local Font Access 対応可否は I18N 利用後に判定（t() 使用のため） -> 位置を後段に移動
 
       const elLang = $("lang");
 
@@ -1289,22 +1300,18 @@
           if (optSolid) optSolid.textContent = t('solid');
           if (optStroke) optStroke.textContent = t('stroke');
         }
-        // 既存タイル: 元文字を抽出し正規化してから現在言語の引用符で再構築（重複を防止）
         document.querySelectorAll('.tile .meta span').forEach(span => {
           const text = span.textContent || '';
           const numMatch = text.match(/^#(\d+)/);
           if (!numMatch) return;
           const index = numMatch[1];
-          // 既に data-char-original に保持していればそれを使う
           let original = span.dataset.charOriginal;
           if (!original) {
             let rest = text.slice(numMatch[0].length); // remove leading #<n>
             rest = rest.trim();
-            // 先頭・末尾に連続する引用符候補（全角/半角）を削除
             rest = rest.replace(/^[「"“”']+/, '').replace(/[」"“”']+$/, '');
-            // 念のため再度トリム
             original = rest.trim();
-            span.dataset.charOriginal = original; // キャッシュ
+            span.dataset.charOriginal = original;
           }
           span.textContent = `#${index} ${t('charQuoteOpen') || ''}${original}${t('charQuoteClose') || ''}`;
         });
@@ -1342,6 +1349,31 @@
           console.warn('locale init failed', e);
         }
       })();
+
+      (function enforceLocalFontAccessRequirement() {
+        if (supportLocal) return;
+        document.documentElement.classList.add('unsupported');
+        let msg = document.getElementById('unsupportedMsg');
+        if (!msg) {
+          msg = document.createElement('div');
+          msg.id = 'unsupportedMsg';
+          msg.setAttribute('role', 'alert');
+          msg.setAttribute('aria-live', 'polite');
+          document.body.insertBefore(msg, document.body.firstChild);
+        }
+        msg.textContent = t('localFontUnsupported');
+        const style = document.createElement('style');
+        style.id = 'unsupportedStyle';
+        style.textContent = `html.unsupported .wrap, html.unsupported #loading { display: none !important; }
+html.unsupported body { background:#0f141c; }
+html.unsupported #unsupportedMsg { max-width:640px; margin:56px auto; padding:32px 40px; font-size:1.1rem; line-height:1.7; background:#1d2633; border:1px solid #2e3a4a; border-radius:16px; box-shadow:0 4px 24px -4px rgba(0,0,0,.4); color:#f0f5ff; }
+html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
+        document.head.appendChild(style);
+        return;
+      })();
+      if (!supportLocal && document.documentElement.classList.contains('unsupported')) {
+        return;
+      }
 
       elColor.addEventListener('input', () => {
         queueGenerate({ instant: true, delay: 0 });
