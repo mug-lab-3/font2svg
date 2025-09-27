@@ -111,9 +111,11 @@
 
     .switcher {
       position: relative;
-      flex: 1 1 320px;
-      min-width: 260px;
+      flex: 0 1 360px;
+      min-width: 280px;
       min-height: 52px;
+      width: clamp(280px, 36vw, 400px);
+      max-width: 100%;
     }
 
     .switcher .switchItem {
@@ -136,8 +138,24 @@
       transform: translateY(0);
     }
 
-    .switcher select {
+    .switcher select,
+    .switcher button {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .fontControls {
+      flex: 1 1 auto;
       min-width: 320px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .styleSelect {
+      flex: 0 1 220px;
+      min-width: 180px;
     }
 
     .btn {
@@ -417,6 +435,23 @@
         min-width: 100%
       }
 
+      .switcher {
+        width: 100%;
+      }
+
+      .fontControls {
+        flex-basis: 100%;
+        min-width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .styleSelect {
+        width: 100%;
+        flex: 0 0 auto;
+      }
+
       .row {
         gap: 12px
       }
@@ -572,13 +607,18 @@
           <span class="material-symbols-outlined" aria-hidden="true">font_download</span>
           <span>フォント</span>
         </label>
-        <div class="switcher">
-          <div id="fontButtonWrap" class="switchItem is-active">
-            <button id="btnListLocal" class="btn">フォント読み込み</button>
+        <div class="fontControls">
+          <div class="switcher">
+            <div id="fontButtonWrap" class="switchItem is-active">
+              <button id="btnListLocal" class="btn">フォント読み込み</button>
+            </div>
+            <div id="fontListWrap" class="switchItem">
+              <select id="localList"></select>
+            </div>
           </div>
-          <div id="fontListWrap" class="switchItem">
-            <select id="localList"></select>
-          </div>
+          <select id="styleList" class="styleSelect" disabled aria-label="スタイル">
+            <option value="">▼ スタイルを選択</option>
+          </select>
         </div>
       </div>
 
@@ -641,6 +681,7 @@
 
       const elListBtn = $("btnListLocal");
       const elList = $("localList");
+      const elStyleList = $("styleList");
       const elFontName = $("fontName");
       const elSupport = $("supportNote");
       const elFontButtonWrap = $("fontButtonWrap");
@@ -820,6 +861,19 @@
       const OUTPUT_SIZE = 481;
       const PRECISION = 3;
 
+      const WEIGHT_NAME_BY_CLASS = {
+        100: 'Thin',
+        200: 'Extra Light',
+        300: 'Light',
+        400: 'Regular',
+        500: 'Medium',
+        600: 'Semi Bold',
+        700: 'Bold',
+        800: 'Extra Bold',
+        900: 'Black',
+      };
+
+      let fontFamilies = [];
       let otFont = null;
       let isSwitchingFont = false;
       let currentFontName = '';
@@ -871,6 +925,275 @@
         }
       }
 
+      function resetStyleSelect() {
+        if (!elStyleList) return;
+        elStyleList.innerHTML = '';
+        elStyleList.value = '';
+        elStyleList.disabled = true;
+      }
+
+      function updateStyleDisabledState(family) {
+        if (!elStyleList) return;
+        const hasVariants = !!(family && Array.isArray(family.variants) && family.variants.length > 0);
+        elStyleList.disabled = !hasVariants;
+      }
+
+      function assignOptionFont(option, variant) {
+        if (!option || !variant) return;
+        if (Number.isFinite(variant.weightValue)) {
+          option.dataset.weightClass = String(variant.weightValue);
+        } else {
+          delete option.dataset.weightClass;
+        }
+        if (variant.styleName) {
+          option.dataset.styleName = variant.styleName;
+        } else {
+          delete option.dataset.styleName;
+        }
+      }
+
+      function sanitizeStyleText(text) {
+        if (!text) return '';
+        return String(text).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function titleCase(text) {
+        return String(text).replace(/(^|\s)(\S)/g, (m, p1, p2) => p1 + p2.toUpperCase());
+      }
+
+      function snapWeightValue(weight) {
+        if (!Number.isFinite(weight)) return NaN;
+        const clamped = Math.min(900, Math.max(100, weight));
+        const snapped = Math.round(clamped / 100) * 100;
+        return Math.min(900, Math.max(100, snapped));
+      }
+
+      function weightNameFromValue(weight) {
+        const snapped = snapWeightValue(weight);
+        return Number.isFinite(snapped) ? (WEIGHT_NAME_BY_CLASS[snapped] || '') : '';
+      }
+
+      function buildVariantFromDescriptor(fd) {
+        const familyName = (fd.family || fd.fullName || fd.postscriptName || 'Local Font').trim() || 'Local Font';
+        const styleName = sanitizeStyleText(fd.style || '');
+        const fullName = (fd.fullName || '').trim();
+        const postscriptName = (fd.postscriptName || '').trim();
+        const weightValue = (typeof fd.weight === 'number' && Number.isFinite(fd.weight)) ? fd.weight : NaN;
+        const weightLabel = (typeof fd.weight === 'string' && fd.weight.trim()) ? fd.weight.trim() : '';
+        const isItalic = /italic/i.test(styleName) || /italic/i.test(weightLabel) || /italic/i.test(fullName);
+        const isOblique = !isItalic && (/oblique/i.test(styleName) || /oblique/i.test(weightLabel) || /oblique/i.test(fullName));
+
+        const variant = {
+          descriptor: fd,
+          familyName,
+          familyKey: familyName.toLowerCase(),
+          styleName,
+          fullName,
+          postscriptName,
+          weightValue,
+          weightLabel,
+          isItalic,
+          isOblique,
+        };
+        variant.displayLabel = buildVariantLabel(variant);
+        return variant;
+      }
+
+      function buildVariantLabel(variant) {
+        if (!variant) return 'Regular';
+        const parts = [];
+        const pushUnique = (label) => {
+          if (!label) return;
+          const normalized = label.trim();
+          if (!normalized) return;
+          const lower = normalized.toLowerCase();
+          if (!parts.some(p => p.toLowerCase() === lower)) {
+            parts.push(normalized);
+          }
+        };
+
+        const styleTokens = sanitizeStyleText(variant.styleName).split(' ').filter(Boolean);
+        styleTokens.forEach(token => {
+          const lower = token.toLowerCase();
+          if (lower === 'regular' || lower === 'normal' || lower === 'plain') return;
+          if (lower === 'italic' || lower === 'oblique') return;
+          pushUnique(titleCase(token));
+        });
+
+        const weightFromValue = weightNameFromValue(variant.weightValue);
+        if (weightFromValue && weightFromValue.toLowerCase() !== 'regular') {
+          pushUnique(weightFromValue);
+        } else if (variant.weightLabel) {
+          const cleaned = titleCase(sanitizeStyleText(variant.weightLabel));
+          if (cleaned && cleaned.toLowerCase() !== 'regular') {
+            pushUnique(cleaned);
+          }
+        }
+
+        if (variant.isItalic) {
+          pushUnique('Italic');
+        } else if (variant.isOblique) {
+          pushUnique('Oblique');
+        }
+
+        if (parts.length === 0) {
+          const fallbackWeight = weightNameFromValue(variant.weightValue);
+          if (fallbackWeight) {
+            pushUnique(fallbackWeight);
+          }
+        }
+
+        if (parts.length === 0) {
+          const family = variant.familyName || '';
+          const full = variant.fullName || variant.postscriptName || '';
+          if (full) {
+            const familyLower = family.toLowerCase();
+            const fullLower = full.toLowerCase();
+            if (family && fullLower.startsWith(familyLower)) {
+              const remainder = sanitizeStyleText(full.slice(family.length));
+              if (remainder) {
+                pushUnique(titleCase(remainder));
+              }
+            } else {
+              pushUnique(titleCase(sanitizeStyleText(full)));
+            }
+          }
+        }
+
+        if (parts.length === 0) {
+          pushUnique('Regular');
+        }
+
+        return parts.join(' ');
+      }
+
+      function prepareFamilyEntries(records) {
+        const byFamily = new Map();
+        for (const variant of records) {
+          const familyKey = variant.familyKey || (variant.familyName || 'Local Font').toLowerCase();
+          const displayName = variant.familyName || 'Local Font';
+          if (!byFamily.has(familyKey)) {
+            byFamily.set(familyKey, { key: familyKey, name: displayName, variants: [] });
+          }
+          byFamily.get(familyKey).variants.push(variant);
+        }
+        const entries = Array.from(byFamily.values());
+        entries.forEach(entry => {
+          entry.variants.sort((a, b) => {
+            const weightA = snapWeightValue(a.weightValue);
+            const weightB = snapWeightValue(b.weightValue);
+            if (Number.isFinite(weightA) && Number.isFinite(weightB) && weightA !== weightB) {
+              return weightA - weightB;
+            }
+            const styleA = (a.displayLabel || a.styleName || '').toLowerCase();
+            const styleB = (b.displayLabel || b.styleName || '').toLowerCase();
+            if (styleA !== styleB) return styleA.localeCompare(styleB);
+            const fullNameA = (a.fullName || '').toLowerCase();
+            const fullNameB = (b.fullName || '').toLowerCase();
+            return fullNameA.localeCompare(fullNameB);
+          });
+        });
+        entries.sort((a, b) => a.name.localeCompare(b.name));
+        return entries;
+      }
+
+      function getSelectedFamily() {
+        if (!elList) return null;
+        const value = elList.value;
+        if (value === '' || value == null) return null;
+        const idx = Number(value);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= fontFamilies.length) return null;
+        return fontFamilies[idx] || null;
+      }
+
+      async function switchFontDescriptor(variant) {
+        if (!variant || isSwitchingFont) return;
+        isSwitchingFont = true;
+        if (autoGenTimer) {
+          clearTimeout(autoGenTimer);
+          autoGenTimer = null;
+        }
+        if (elDlAll) {
+          elDlAll.disabled = true;
+          elDlAll.onclick = null;
+        }
+        showPreviewLoading('SVG を生成しています…');
+        if (elList) elList.disabled = true;
+        if (elStyleList) elStyleList.disabled = true;
+        try {
+          const fd = variant.descriptor;
+          const blob = await fd.blob();
+          const buf = await blob.arrayBuffer();
+          otFont = opentype.parse(buf);
+          const resolvedName = variant.fullName || variant.postscriptName || fd.fullName || fd.postscriptName || `${variant.familyName || ''} ${variant.styleName || ''}`.trim() || 'Local Font';
+          if (elFontName) elFontName.textContent = resolvedName;
+          currentFontName = resolvedName;
+          await generateAll({ instant: false });
+        } catch (err) {
+          console.error(err);
+        } finally {
+          if (elList) elList.disabled = false;
+          updateStyleDisabledState(getSelectedFamily());
+          isSwitchingFont = false;
+        }
+      }
+
+      function populateStyleSelect(family) {
+        if (!elStyleList) return;
+        resetStyleSelect();
+        if (!family || !Array.isArray(family.variants) || family.variants.length === 0) {
+          updateStyleDisabledState(null);
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        family.variants.forEach((variant, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          const label = variant.displayLabel || buildVariantLabel(variant);
+          option.textContent = label;
+          assignOptionFont(option, variant);
+          frag.appendChild(option);
+        });
+        elStyleList.appendChild(frag);
+        updateStyleDisabledState(family);
+        elStyleList.selectedIndex = 0;
+        void switchFontDescriptor(family.variants[0]);
+      }
+
+      function handleFamilyChange() {
+        if (isSwitchingFont) return;
+        const family = getSelectedFamily();
+        populateStyleSelect(family);
+      }
+
+      async function handleStyleChange() {
+        if (!elStyleList || isSwitchingFont) return;
+        const value = elStyleList.value;
+        if (value === '' || value == null) {
+          otFont = null;
+          currentFontName = '';
+          showPreviewPlaceholder();
+          if (elDlAll) {
+            elDlAll.disabled = true;
+            elDlAll.onclick = null;
+          }
+          return;
+        }
+        const family = getSelectedFamily();
+        if (!family) return;
+        const variantIdx = Number(value);
+        if (!Number.isInteger(variantIdx) || variantIdx < 0 || variantIdx >= family.variants.length) return;
+        await switchFontDescriptor(family.variants[variantIdx]);
+      }
+
+      if (elList) {
+        elList.addEventListener('change', handleFamilyChange);
+      }
+      if (elStyleList) {
+        elStyleList.addEventListener('change', () => { void handleStyleChange(); });
+      }
+      resetStyleSelect();
+
       // ファイル名の危険文字を安全化
       function safeName(s) {
         return String(s ?? 'LocalFont').replace(/[\\/:*?"<>|\r\n]/g, '_').trim() || 'LocalFont';
@@ -881,16 +1204,6 @@
         const u8 = new Uint8Array(buf, 0, 4);
         const head = String.fromCharCode(u8[0], u8[1], u8[2], u8[3]).toLowerCase();
         return head === 'ttcf';
-      }
-
-      function readBlobWithProgress(blob, onProgress) {
-        return new Promise((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onprogress = e => { if (e.lengthComputable && typeof onProgress === 'function') { onProgress(e.loaded, e.total); } };
-          fr.onload = () => resolve(fr.result);
-          fr.onerror = err => reject(err);
-          fr.readAsArrayBuffer(blob);
-        });
       }
 
       const showLoading = (msg) => {
@@ -922,6 +1235,7 @@
         try {
           elListBtn.disabled = true;
           showLoading('ローカルフォントを取得しています…');
+          resetStyleSelect();
 
           const fonts = await window.queryLocalFonts();
           const seen = new Set();
@@ -932,92 +1246,52 @@
           }
           unique.sort((a, b) => (a.fullName || a.family).localeCompare(b.fullName || b.family));
 
-          const supported = [];
+          const variants = [];
           updateLoadingProgress(0, unique.length);
           for (let i = 0; i < unique.length; i++) {
             const fd = unique[i];
             try {
               const blob = await fd.blob();
               const headBuf = await blob.slice(0, 4).arrayBuffer();
-              if (isCollectionBuffer(headBuf)) continue;
-              supported.push(fd);
-            } catch (e) { }
-            updateLoadingProgress(i + 1, unique.length);
+              if (isCollectionBuffer(headBuf)) {
+                continue;
+              }
+              variants.push(buildVariantFromDescriptor(fd));
+            } catch (e) {
+              console.error(e);
+            } finally {
+              updateLoadingProgress(i + 1, unique.length);
+            }
           }
 
-          if (supported.length === 0) {
+          fontFamilies = prepareFamilyEntries(variants);
+
+          if (!fontFamilies.length) {
             toggleFontControls(false);
+            updateStyleDisabledState(null);
             return;
           }
 
           elList.innerHTML = '';
           const frag = document.createDocumentFragment();
 
-          const placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = '▼ フォントを選択';
-          frag.appendChild(placeholder);
-
-          const toLabel = (fd) => {
-            const base = fd.fullName || fd.postscriptName;
-            if (base) return base;
-            const family = fd.family || '';
-            const style = fd.style ? ` ${fd.style}` : '';
-            return (family + style).trim() || 'Local Font';
-          };
-
-          const assignOptionFont = (option, fd) => {
-            const familyName = quoteFontFamily(fd.family || fd.fullName || fd.postscriptName);
-            if (!familyName) return;
-            option.style.fontFamily = `${familyName}, sans-serif`;
-          };
-
-          supported.forEach((fd, i) => {
+          fontFamilies.forEach((family, index) => {
             const option = document.createElement('option');
-            option.value = String(i);
-            option.textContent = toLabel(fd);
-            assignOptionFont(option, fd);
+            option.value = String(index);
+            option.textContent = family.name;
+            if (family.variants[0]) assignOptionFont(option, family.variants[0]);
             frag.appendChild(option);
           });
 
           elList.appendChild(frag);
           toggleFontControls(true);
+          resetStyleSelect();
+          updateStyleDisabledState(null);
 
-          requestAnimationFrame(() => {
-            try { elList.focus({ preventScroll: true }); }
-            catch (_) { try { elList.focus(); } catch (__) { } }
-          });
-
-          elList.onchange = async () => {
-            if (isSwitchingFont) return;
-            isSwitchingFont = true;
-            if (autoGenTimer) {
-              clearTimeout(autoGenTimer);
-              autoGenTimer = null;
-            }
-            const idx = Number(elList.value);
-            const fd = supported[idx];
-            if (!fd) { isSwitchingFont = false; return; }
-
-            showPreviewLoading('SVG を生成しています…');
-            elList.disabled = true;
-            try {
-              const blob = await fd.blob();
-              const buf = await readBlobWithProgress(blob);
-              otFont = opentype.parse(buf);
-              const resolvedName = fd.fullName || fd.postscriptName || fd.family || 'Local Font';
-              if (elFontName) {
-                elFontName.textContent = resolvedName;
-              }
-              currentFontName = resolvedName;
-              await generateAll({ instant: false });
-            } catch (err) {
-              console.error(err);
-            } finally {
-              elList.disabled = false;
-              isSwitchingFont = false;
-            }
-          };
+          if (fontFamilies.length > 0) {
+            elList.selectedIndex = 0;
+            handleFamilyChange();
+          }
         } catch (err) {
           console.error(err);
         } finally {
