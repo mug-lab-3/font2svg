@@ -158,6 +158,10 @@
       min-width: 180px;
     }
 
+    .styleSelect.is-hidden {
+      display: none;
+    }
+
     .btn {
       appearance: none;
       border: 0;
@@ -616,9 +620,7 @@
               <select id="localList"></select>
             </div>
           </div>
-          <select id="styleList" class="styleSelect" disabled aria-label="スタイル">
-            <option value="">▼ スタイルを選択</option>
-          </select>
+          <select id="styleList" class="styleSelect is-hidden" disabled aria-label="スタイル"></select>
         </div>
       </div>
 
@@ -930,12 +932,14 @@
         elStyleList.innerHTML = '';
         elStyleList.value = '';
         elStyleList.disabled = true;
+        elStyleList.classList.add('is-hidden');
       }
 
       function updateStyleDisabledState(family) {
         if (!elStyleList) return;
         const hasVariants = !!(family && Array.isArray(family.variants) && family.variants.length > 0);
         elStyleList.disabled = !hasVariants;
+        elStyleList.classList.toggle('is-hidden', !hasVariants);
       }
 
       function assignOptionFont(option, variant) {
