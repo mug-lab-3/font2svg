@@ -5,6 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Font2SVG - Text to SVG Converter</title>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <style>
     :root {
       --bg: #0b0c10;
@@ -182,6 +184,30 @@
       gap: 10px;
       font-weight: 400;
       color: var(--ink)
+    }
+
+    .material-symbols-outlined {
+      font-family: "Material Symbols Outlined";
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: normal;
+      text-transform: none;
+      white-space: nowrap;
+      direction: ltr;
+      font-feature-settings: "liga";
+      -webkit-font-feature-settings: "liga";
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings:
+        "FILL" 0,
+        "wght" 400,
+        "GRAD" 0,
+        "opsz" 24;
+      color: var(--accent-strong);
     }
 
     select,
@@ -530,7 +556,10 @@
 
     <section class="card">
       <div class="row">
-        <label class="inline" for="localList">フォント</label>
+        <label class="inline" for="localList">
+          <span class="material-symbols-outlined" aria-hidden="true">font_download</span>
+          <span>フォント</span>
+        </label>
         <div class="switcher">
           <div id="fontButtonWrap" class="switchItem is-active">
             <button id="btnListLocal" class="btn">フォント読み込み</button>
@@ -541,23 +570,35 @@
         </div>
       </div>
 
-      <div class="row">
-        <label class="inline" style="align-items:flex-start">テキスト
-          <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
+      <div class="row" style="align-items:flex-start">
+        <label class="inline" for="text">
+          <span class="material-symbols-outlined" aria-hidden="true">text_fields</span>
+          <span>テキスト</span>
+        </label>
+        <textarea id="text">ABC123!%$漢字ひらカナ。</textarea>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label class="inline" for="color">
+          <span class="material-symbols-outlined" aria-hidden="true">palette</span>
+          <span>文字色</span>
+          <input id="color" type="color" value="#ffffff" />
         </label>
       </div>
       <div class="row" style="margin-top:6px">
-        <label class="inline">文字色 <input id="color" type="color" value="#ffffff" /></label>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <label class="inline">描画モード
+        <label class="inline" for="mode">
+          <span class="material-symbols-outlined" aria-hidden="true">format_paint</span>
+          <span>描画モード</span>
           <select id="mode">
             <option value="solid">塗り</option>
             <option value="stroke">輪郭線</option>
           </select>
         </label>
-        <label class="inline">線幅 <input id="strokeW" type="number" value="5" min="0.5" step="0.5" style="width:80px" />
-          px</label>
+        <label class="inline" for="strokeW">
+          <span class="material-symbols-outlined" aria-hidden="true">line_weight</span>
+          <span>線幅</span>
+          <input id="strokeW" type="number" value="5" min="0.5" step="0.5" style="width:80px" />
+          <span>px</span>
+        </label>
       </div>
     </section>
 
