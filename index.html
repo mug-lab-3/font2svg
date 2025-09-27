@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>font2svg</title>
+  <title>Font2SVG - Text to SVG Converter</title>
   <style>
     :root{
       --bg: #0b0c10;
@@ -232,6 +232,7 @@
     .title-block{flex:1;}
     .header-actions{display:grid;grid-template-columns:max-content;justify-items:end;gap:6px;margin-left:auto;}
     .header-actions > *{justify-self:end;}
+    .lang-select{width:auto;margin:0;}
     .x-link{text-decoration:none;padding:6px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--primary);background:transparent;color:#fff;font-size:1.2rem;}
     .x-link:hover{opacity:.8}
     .x-link img{width:24px;height:24px;border-radius:50%;}
@@ -242,8 +243,12 @@
   <div class="wrap">
     <header>
       <div class="wrap">
+        <select id="lang" class="lang-select">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
         <div class="title-block">
-          <h1>文字ごとのSVGアウトライン生成</h1>
+          <h1>Font2SVG - Text to SVG Converter</h1>
           <p class="help">お使いの端末にインストールされているフォントを選び、入力テキスト（改行は無視）を<strong>1文字ごとに独立したSVG</strong>に変換します。処理はすべてお使いのブラウザ内で完結し、入力文字列やフォントデータが外部に送信されることはありません。</p>
         </div>
         <div class="header-actions">
