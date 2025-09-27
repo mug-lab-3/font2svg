@@ -391,8 +391,9 @@
     }
 
     .preview {
+      /* border before: 2px dashed var(--chip); → ギザ付き回避のため 1px solid に変更 */
       min-height: 240px;
-      border: 2px dashed var(--chip);
+      border: 1px solid var(--chip);
       border-radius: 20px;
       background: linear-gradient(180deg, rgba(34, 39, 53, .9) 0%, rgba(21, 24, 33, .92) 100%);
       padding: 12px;
@@ -415,15 +416,7 @@
       height: 10px;
     }
 
-    .preview {
-      min-height: 240px;
-      border: 2px dashed var(--chip);
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(34, 39, 53, .9) 0%, rgba(21, 24, 33, .92) 100%);
-      padding: 12px;
-      overflow: auto;
-      contain: paint;
-    }
+    /* duplicate .preview block removed (consolidated above) */
 
     .tile .foot {
       display: flex;
