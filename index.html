@@ -400,6 +400,21 @@
       contain: paint;
     }
 
+    /* Restored custom scrollbar (lost in refactor 07a7120) */
+    .preview,
+    .tile .box {
+      scrollbar-width: thin;
+      /* Firefox */
+      scrollbar-color: var(--primary) var(--chip);
+      /* thumb track */
+    }
+
+    .preview::-webkit-scrollbar,
+    .tile .box::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
     .preview {
       min-height: 240px;
       border: 2px dashed var(--chip);
@@ -777,11 +792,8 @@
 
     <section class="card">
       <div class="row" style="margin-bottom:10px">
-        <button id="btnDlAll" class="btn" disabled
-          title="全SVGをZIPで一括ダウンロード"
-          aria-label="全SVGをZIPで一括ダウンロード"
-          data-i18n-label-ja="全SVG一括ダウンロード（ZIP）"
-          data-i18n-label-en="Download All SVGs (ZIP)">
+        <button id="btnDlAll" class="btn" disabled title="全SVGをZIPで一括ダウンロード" aria-label="全SVGをZIPで一括ダウンロード"
+          data-i18n-label-ja="全SVG一括ダウンロード（ZIP）" data-i18n-label-en="Download All SVGs (ZIP)">
           全SVG一括ダウンロード（ZIP）
         </button>
       </div>
