@@ -26,6 +26,9 @@
       --wrap-margin-bottom: 64px;
       --wrap-padding-bottom: 48px;
       --card-padding-bottom: 24px;
+      /* Physicalオフセット: 角丸領域とスクロールバー/内容物を離す */
+      --preview-scroll-offset: 12px;
+      /* 調整用。overlay scrollbar 環境では 0 に */
     }
 
     :root.preview-compact {
@@ -47,6 +50,20 @@
       font-size: 1.2em;
       line-height: 1.7;
       font-family: "Inter", "Hiragino Kaku Gothic ProN", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* 旧インセット方式は overlay scrollbar では効果が薄かったため absolute 方式に変更 */
+    .preview-scroll {
+      position: absolute;
+      inset: 0;
+      /* 右側だけ物理的に切り詰めてスクロールバーを内側へ */
+      right: var(--preview-scroll-offset);
+      padding: 12px 12px 12px 12px;
+      box-sizing: border-box;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      /* スクロールバー幅確保 (非 overlay 環境) */
+      scrollbar-gutter: stable;
     }
 
     .wrap {
@@ -391,18 +408,26 @@
     }
 
     .preview {
-      /* border before: 2px dashed var(--chip); → ギザ付き回避のため 1px solid に変更 */
+      /* outer wrapper: handles border radius & clipping, inner handles scrolling */
       min-height: 240px;
       border: 1px solid var(--chip);
       border-radius: 20px;
       background: linear-gradient(180deg, rgba(34, 39, 53, .9) 0%, rgba(21, 24, 33, .92) 100%);
-      padding: 12px;
-      overflow: auto;
+      overflow: hidden;
+      /* 角丸外を確実にカット */
+      position: relative;
       contain: paint;
     }
 
+    /* 上部再定義: absolute化後の微調整（再宣言は後勝ち） */
+    .preview-scroll {
+      /* 角丸付近の図形欠け対策として上下にも数px余白を加える */
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
+
     /* Restored custom scrollbar (lost in refactor 07a7120) */
-    .preview,
+    .preview-scroll,
     .tile .box {
       scrollbar-width: thin;
       /* Firefox */
@@ -410,7 +435,7 @@
       /* thumb track */
     }
 
-    .preview::-webkit-scrollbar,
+    .preview-scroll::-webkit-scrollbar,
     .tile .box::-webkit-scrollbar {
       width: 10px;
       height: 10px;
@@ -427,13 +452,13 @@
       border-radius: 0;
     }
 
-    .preview::-webkit-scrollbar-track,
+    .preview-scroll::-webkit-scrollbar-track,
     .tile .box::-webkit-scrollbar-track {
       background: var(--chip);
       border-radius: 999px;
     }
 
-    .preview::-webkit-scrollbar-thumb,
+    .preview-scroll::-webkit-scrollbar-thumb,
     .tile .box::-webkit-scrollbar-thumb {
       background: var(--primary);
       border-radius: 999px;
@@ -441,9 +466,14 @@
       background-clip: padding-box;
     }
 
-    .preview::-webkit-scrollbar-thumb:hover,
+    .preview-scroll::-webkit-scrollbar-thumb:hover,
     .tile .box::-webkit-scrollbar-thumb:hover {
       background: var(--accent-strong);
+    }
+
+    /* overlay scrollbar 環境向け（macOS など）: オフセットは意味がないので 0 に */
+    .overlay-scrollbars .preview-scroll {
+      right: 0;
     }
 
     input[type="number"]::-webkit-outer-spin-button,
@@ -791,7 +821,9 @@
         </button>
       </div>
       <div id="preview" class="preview">
-        <div class="help">ここに各文字のSVGを表示します。</div>
+        <div id="previewScroll" class="preview-scroll">
+          <div class="help">ここに各文字のSVGを表示します。</div>
+        </div>
       </div>
     </section>
   </div>
@@ -840,6 +872,7 @@
       });
 
       const elPreview = $("preview");
+      const elPreviewScroll = $("previewScroll");
       const elDlAll = $("btnDlAll");
       const rootEl = document.documentElement;
 
@@ -941,6 +974,10 @@
         const height = Math.max(PREVIEW_MIN_HEIGHT, Math.min(maxHeight, available));
         elPreview.style.height = `${height}px`;
         elPreview.style.maxHeight = `${height}px`;
+        if (elPreviewScroll) {
+          elPreviewScroll.style.height = '100%';
+          elPreviewScroll.style.maxHeight = '100%';
+        }
         return height;
       }
 
@@ -967,14 +1004,14 @@
       const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
       function showPreviewLoading(message = 'SVG を生成しています…') {
-        if (!elPreview) return;
+        if (!elPreviewScroll) return;
         previewLoadingActive = true;
         previewLoadingSince = now();
-        elPreview.classList.add('is-loading');
+        elPreviewScroll.classList.add('is-loading');
         const msg = document.createElement('div');
         msg.className = 'preview-loading';
         msg.textContent = message;
-        elPreview.replaceChildren(msg);
+        elPreviewScroll.replaceChildren(msg);
         updatePreviewHeight();
       }
 
@@ -988,18 +1025,18 @@
 
       function clearPreviewLoading() {
         previewLoadingActive = false;
-        if (elPreview) {
-          elPreview.classList.remove('is-loading');
+        if (elPreviewScroll) {
+          elPreviewScroll.classList.remove('is-loading');
         }
       }
 
       function showPreviewPlaceholder() {
-        if (!elPreview) return;
+        if (!elPreviewScroll) return;
         clearPreviewLoading();
         const msg = document.createElement('div');
         msg.className = 'help';
         msg.textContent = 'ここに各文字のSVGを表示します。';
-        elPreview.replaceChildren(msg);
+        elPreviewScroll.replaceChildren(msg);
         updatePreviewHeight();
       }
 
@@ -1864,7 +1901,9 @@
 
         await ensurePreviewLoadingDuration();
         clearPreviewLoading();
-        elPreview.replaceChildren(grid);
+        if (elPreviewScroll) {
+          elPreviewScroll.replaceChildren(grid);
+        }
         updatePreviewHeight();
         elDlAll.disabled = false;
 
@@ -1907,6 +1946,26 @@
         }
       }
       requestAnimationFrame(updatePreviewHeight);
+
+      // === Overlay Scrollbar 判定 ===
+      (function detectOverlayScrollbars() {
+        try {
+          const test = document.createElement('div');
+          test.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll;pointer-events:none;opacity:0;';
+          const inner = document.createElement('div');
+          inner.style.height = '200px';
+          test.appendChild(inner);
+          document.body.appendChild(test);
+          const scrollbarWidth = test.offsetWidth - test.clientWidth; // 物理スクロールバー幅
+          document.body.removeChild(test);
+          if (scrollbarWidth <= 2) {
+            // macOS の overlay 等: オフセット無効化
+            document.documentElement.classList.add('overlay-scrollbars');
+          }
+        } catch (e) {
+          console.warn('overlay scrollbar detection failed', e);
+        }
+      })();
 
     })();
   </script>
