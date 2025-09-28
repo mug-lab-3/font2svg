@@ -1625,12 +1625,20 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
         queueGenerate({ instant: true, delay: 0 });
       });
+      function maybeShowTypingLoading() {
+        if (otFont && typeof showPreviewLoading === 'function') {
+          showPreviewLoading(t('loadingGenerating'));
+        }
+      }
+
       const scheduleTextPreview = () => {
+        maybeShowTypingLoading();
         queueGenerate({ instant: false, delay: TEXT_INPUT_DEBOUNCE_MS });
       };
 
       elText.addEventListener('compositionstart', () => {
         isTextComposing = true;
+        maybeShowTypingLoading();
       });
 
       elText.addEventListener('compositionend', () => {
@@ -1642,6 +1650,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       elText.addEventListener('input', (event) => {
         updateSettings({ text: elText.value });
         if ((event && event.isComposing) || isTextComposing) {
+          maybeShowTypingLoading();
           return;
         }
         scheduleTextPreview();
