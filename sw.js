@@ -1,6 +1,5 @@
 importScripts('./version.js');
 
-// ===== 設定（リリースごとに version.js の値を上げるだけ！）=====
 const version = self.version;
 const PRECACHE_NAME  = `precache-${version}`;
 const FONT_CACHE_NAME = `fontcache-${version}`;

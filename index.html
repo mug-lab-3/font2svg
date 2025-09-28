@@ -1051,11 +1051,149 @@
       const elMode = $("mode");
       const elStrokeW = $("strokeW");
       const elColor = $("color");
+      const elLang = $("lang");
 
       const elSpinUp = elStrokeW.parentElement.querySelector('.spin-up');
       const elSpinDown = elStrokeW.parentElement.querySelector('.spin-down');
 
+      const SETTINGS_KEY = 'font2svg.settings.v1';
+      const SETTINGS_SAVE_DELAY_MS = 200;
+
+      const storageAvailable = detectStorageAvailability();
+      let persistedSettings = loadPersistedSettings();
+      let saveSettingsTimer = null;
+
+      applyInitialSettings();
+
+      window.addEventListener('beforeunload', flushPersistedSettings);
+
       const supportLocal = typeof window.queryLocalFonts === 'function';
+
+      function detectStorageAvailability() {
+        try {
+          if (typeof window === 'undefined' || !('localStorage' in window)) {
+            return false;
+          }
+          const testKey = '__font2svg_storage_test__';
+          window.localStorage.setItem(testKey, '1');
+          window.localStorage.removeItem(testKey);
+          return true;
+        } catch (err) {
+          console.warn('localStorage unavailable', err);
+          return false;
+        }
+      }
+
+      function loadPersistedSettings() {
+        if (!storageAvailable) return {};
+        try {
+          const raw = window.localStorage.getItem(SETTINGS_KEY);
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            return parsed;
+          }
+        } catch (err) {
+          console.warn('loading settings failed', err);
+        }
+        return {};
+      }
+
+      function persistSettingsNow() {
+        if (!storageAvailable) return;
+        try {
+          window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(persistedSettings || {}));
+        } catch (err) {
+          console.warn('saving settings failed', err);
+        }
+      }
+
+      function scheduleSettingsSave() {
+        if (!storageAvailable) return;
+        if (saveSettingsTimer) {
+          clearTimeout(saveSettingsTimer);
+        }
+        saveSettingsTimer = window.setTimeout(() => {
+          saveSettingsTimer = null;
+          persistSettingsNow();
+        }, SETTINGS_SAVE_DELAY_MS);
+      }
+
+      function updateSettings(partial, options = {}) {
+        if (!persistedSettings || typeof persistedSettings !== 'object') {
+          persistedSettings = {};
+        }
+        const next = { ...persistedSettings };
+        if (partial && typeof partial === 'object') {
+          Object.keys(partial).forEach(key => {
+            const value = partial[key];
+            if (value === undefined) {
+              delete next[key];
+            } else {
+              next[key] = value;
+            }
+          });
+        }
+        persistedSettings = next;
+        if (options.immediate) {
+          persistSettingsNow();
+        } else {
+          scheduleSettingsSave();
+        }
+      }
+
+      function getPersistedSetting(key) {
+        if (!persistedSettings || typeof persistedSettings !== 'object') return undefined;
+        return persistedSettings[key];
+      }
+
+      function flushPersistedSettings() {
+        if (!storageAvailable) return;
+        if (saveSettingsTimer) {
+          clearTimeout(saveSettingsTimer);
+          saveSettingsTimer = null;
+        }
+        persistSettingsNow();
+      }
+
+      function applyInitialSettings() {
+        if (!persistedSettings || typeof persistedSettings !== 'object') return;
+
+        const storedColor = getPersistedSetting('color');
+        if (elColor && typeof storedColor === 'string' && parseHexColor(storedColor)) {
+          elColor.value = storedColor;
+        }
+
+        const storedMode = getPersistedSetting('mode');
+        if (elMode && typeof storedMode === 'string') {
+          const hasMode = Array.from(elMode.options || []).some(opt => opt.value === storedMode);
+          if (hasMode) {
+            elMode.value = storedMode;
+          }
+        }
+
+        const storedStroke = getPersistedSetting('strokeW');
+        if (elStrokeW) {
+          const numericStroke = typeof storedStroke === 'number' ? storedStroke : parseFloat(storedStroke);
+          if (Number.isFinite(numericStroke)) {
+            elStrokeW.value = String(numericStroke);
+          }
+        }
+
+        const storedText = getPersistedSetting('text');
+        if (elText && typeof storedText === 'string') {
+          elText.value = storedText;
+        }
+
+        const storedLang = getPersistedSetting('lang');
+        if (elLang && typeof storedLang === 'string') {
+          const hasLangOption = Array.from(elLang.options || []).some(opt => opt.value === storedLang);
+          if (hasLangOption) {
+            elLang.value = storedLang;
+            document.documentElement.setAttribute('lang', storedLang);
+          }
+        }
+      }
 
       // ===== 診断用ヘルパ =====
       // Console で __diag() と入力すると主要状態を取得できます。
@@ -1310,8 +1448,6 @@
 
       // Local Font Access 対応可否は I18N 利用後に判定（t() 使用のため） -> 位置を後段に移動
 
-      const elLang = $("lang");
-
       // ================= I18N =================
       const I18N = {
         ja: {
@@ -1422,13 +1558,25 @@
       (function initLocaleFromBrowser() {
         try {
           if (!elLang) return;
-          const navLang = (navigator.languages && navigator.languages[0]) || navigator.language || '';
-          const preferJa = /^ja(?:[-_]|$)/i.test(navLang);
-          const initial = preferJa ? 'ja' : 'en';
-          if (elLang.value !== initial) {
+          const storedLang = getPersistedSetting('lang');
+          const hasOption = value => Array.from(elLang.options || []).some(opt => opt.value === value);
+          let initial = (typeof storedLang === 'string' && storedLang && hasOption(storedLang)) ? storedLang : '';
+          if (!initial) {
+            const navLang = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+            const preferJa = /^ja(?:[-_]|$)/i.test(navLang);
+            initial = preferJa ? 'ja' : 'en';
+            if (!hasOption(initial)) {
+              initial = elLang.options && elLang.options.length > 0 ? elLang.options[0].value : 'ja';
+            }
+          }
+          if (!initial) initial = 'ja';
+          if (elLang.value !== initial && hasOption(initial)) {
             elLang.value = initial;
           }
           document.documentElement.setAttribute('lang', initial);
+          if (storedLang !== initial) {
+            updateSettings({ lang: initial });
+          }
         } catch (e) {
           console.warn('locale init failed', e);
         }
@@ -1461,15 +1609,22 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       }
 
       elColor.addEventListener('input', () => {
+        updateSettings({ color: elColor.value });
         queueGenerate({ instant: true, delay: 0 });
       });
       elMode.addEventListener('change', () => {
+        updateSettings({ mode: elMode.value }, { immediate: true });
         queueGenerate({ instant: true, delay: 0 });
       });
       elStrokeW.addEventListener('input', () => {
+        const numericStroke = parseFloat(elStrokeW.value);
+        if (Number.isFinite(numericStroke)) {
+          updateSettings({ strokeW: numericStroke });
+        }
         queueGenerate({ instant: true, delay: 0 });
       });
       elText.addEventListener('input', () => {
+        updateSettings({ text: elText.value });
         queueGenerate({ instant: false, delay: 250 });
       });
 
@@ -1894,8 +2049,20 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           }
         }
         if (regularIndex < 0) regularIndex = 0;
-        elStyleList.selectedIndex = regularIndex;
-        void switchFontDescriptor(family.variants[regularIndex]);
+
+        let targetIndex = regularIndex;
+        const savedFamilyKey = getPersistedSetting('fontFamilyKey');
+        const savedVariantIndex = getPersistedSetting('fontVariantIndex');
+        if (family.key && savedFamilyKey === family.key && Number.isInteger(savedVariantIndex) && savedVariantIndex >= 0 && savedVariantIndex < family.variants.length) {
+          targetIndex = savedVariantIndex;
+        }
+
+        elStyleList.selectedIndex = targetIndex;
+        updateSettings({ fontFamilyKey: family.key || family.baseName || '', fontVariantIndex: targetIndex });
+        const targetVariant = family.variants[targetIndex];
+        if (targetVariant) {
+          void switchFontDescriptor(targetVariant);
+        }
       }
 
       function updateFamilyDisplayNames() {
@@ -1923,6 +2090,12 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       function handleFamilyChange() {
         if (isSwitchingFont) return;
         const family = getSelectedFamily();
+        if (!family) {
+          updateSettings({ fontFamilyKey: undefined, fontVariantIndex: undefined }, { immediate: true });
+          resetStyleSelect();
+          return;
+        }
+        updateSettings({ fontFamilyKey: family.key || family.baseName || '' });
         populateStyleSelect(family);
       }
 
@@ -1943,6 +2116,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         if (!family) return;
         const variantIdx = Number(value);
         if (!Number.isInteger(variantIdx) || variantIdx < 0 || variantIdx >= family.variants.length) return;
+        updateSettings({ fontFamilyKey: family.key || family.baseName || '', fontVariantIndex: variantIdx }, { immediate: true });
         await switchFontDescriptor(family.variants[variantIdx]);
       }
 
@@ -1954,10 +2128,12 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       }
       if (elLang) {
         elLang.addEventListener('change', () => {
+          const locale = getCurrentLocale();
+          updateSettings({ lang: locale }, { immediate: true });
+          document.documentElement.setAttribute('lang', locale);
           updateFamilyDisplayNames();
           applyFamilyOptionLabels();
           applyTranslations();
-          document.documentElement.setAttribute('lang', getCurrentLocale());
         });
       }
       resetStyleSelect();
@@ -2066,6 +2242,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           if (!fontFamilies.length) {
             toggleFontControls(false);
             updateStyleDisabledState(null);
+            updateSettings({ fontFamilyKey: undefined, fontVariantIndex: undefined }, { immediate: true });
             return;
           }
 
@@ -2086,7 +2263,18 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           updateStyleDisabledState(null);
 
           if (fontFamilies.length > 0) {
-            elList.selectedIndex = 0;
+            let initialIndex = 0;
+            const savedFamilyKey = getPersistedSetting('fontFamilyKey');
+            if (typeof savedFamilyKey === 'string') {
+              const matchedIndex = fontFamilies.findIndex(family => family.key === savedFamilyKey);
+              if (matchedIndex >= 0) {
+                initialIndex = matchedIndex;
+              }
+            }
+            if (initialIndex < 0 || initialIndex >= fontFamilies.length) {
+              initialIndex = 0;
+            }
+            elList.selectedIndex = initialIndex;
             handleFamilyChange();
           }
 
