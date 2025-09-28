@@ -2093,23 +2093,70 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       });
 
       function buildSVGForChar(font, ch, opts) {
-        const { sizePx, precision, mode, strokeWidth, color } = opts;
+        const { sizePx, precision, mode, strokeWidth, color, precomputed, targetInnerWidth, targetInnerHeight } = opts;
         const scale = sizePx / font.unitsPerEm;
-        const glyph = font.charToGlyph ? font.charToGlyph(ch) : font.stringToGlyphs(ch)[0];
+        const glyph = precomputed && precomputed.glyph
+          ? precomputed.glyph
+          : (font.charToGlyph ? font.charToGlyph(ch) : font.stringToGlyphs(ch)[0]);
         const m = sizePx * 0.08;
-        const width = Math.ceil(font.unitsPerEm * scale + 2 * m);
-        const height = Math.ceil((font.ascender - font.descender) * scale + 2 * m);
-        const gp = glyph.getPath(0, font.ascender * scale, sizePx);
-        const d = gp.toPathData(precision);
-        let tx = m, ty = m;
-        if (typeof gp.getBoundingBox === 'function') {
-          const bb = gp.getBoundingBox();
-          const glyphW = bb.x2 - bb.x1;
-          tx = (width - glyphW) / 2 - bb.x1;
+
+        const hasPrecomputedBBox = precomputed ? Object.prototype.hasOwnProperty.call(precomputed, 'bbox') : false;
+        let pathData = precomputed && precomputed.pathData;
+        let bbox = hasPrecomputedBBox ? precomputed.bbox : undefined;
+        if (!pathData || !hasPrecomputedBBox) {
+          const gp = glyph.getPath(0, font.ascender * scale, sizePx);
+          if (!pathData) {
+            pathData = gp.toPathData(precision);
+          }
+          if (!hasPrecomputedBBox) {
+            if (typeof gp.getBoundingBox === 'function') {
+              bbox = gp.getBoundingBox();
+            } else {
+              bbox = null;
+            }
+          }
+          if (precomputed) {
+            precomputed.pathData = pathData;
+            if (!hasPrecomputedBBox) {
+              precomputed.bbox = bbox;
+            }
+          }
+        }
+
+        let innerWidth = Number.isFinite(targetInnerWidth) ? targetInnerWidth : font.unitsPerEm * scale;
+        let innerHeight = Number.isFinite(targetInnerHeight) ? targetInnerHeight : (font.ascender - font.descender) * scale;
+        if (precomputed) {
+          if (!Number.isFinite(innerWidth) && Number.isFinite(precomputed.glyphWidth)) {
+            innerWidth = precomputed.glyphWidth;
+          }
+          if (!Number.isFinite(innerHeight) && Number.isFinite(precomputed.glyphHeight)) {
+            innerHeight = precomputed.glyphHeight;
+          }
+        }
+        if (!Number.isFinite(innerWidth)) {
+          innerWidth = font.unitsPerEm * scale;
+        }
+        if (!Number.isFinite(innerHeight)) {
+          innerHeight = (font.ascender - font.descender) * scale;
+        }
+
+        const width = Math.ceil(innerWidth + 2 * m);
+        const height = Math.ceil(innerHeight + 2 * m);
+        let tx = m;
+        let ty = m;
+        if (bbox && Number.isFinite(bbox.x1) && Number.isFinite(bbox.x2) && Number.isFinite(bbox.y1) && Number.isFinite(bbox.y2)) {
+          const glyphW = bbox.x2 - bbox.x1;
+          const glyphH = bbox.y2 - bbox.y1;
+          const availableW = width - 2 * m;
+          const availableH = height - 2 * m;
+          const padX = Number.isFinite(availableW) && Number.isFinite(glyphW) ? Math.max(availableW - glyphW, 0) / 2 : 0;
+          const padY = Number.isFinite(availableH) && Number.isFinite(glyphH) ? Math.max(availableH - glyphH, 0) / 2 : 0;
+          tx = m - bbox.x1 + padX;
+          ty = m - bbox.y1 + padY;
         }
 
         const style = (mode === 'solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
-        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${pathData}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
         return svg;
       }
 
@@ -2132,11 +2179,16 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         const d = fullPath.toPathData(precision);
 
         width = Math.ceil(width + 2 * m);
-        const height = Math.ceil(lineHeight * lines.length + 2 * m);
+        let height = Math.ceil(lineHeight * lines.length + 2 * m);
 
-        let tx = m, ty = m;
+        let tx = m;
+        let ty = m;
         if (typeof fullPath.getBoundingBox === 'function') {
           const bb = fullPath.getBoundingBox();
+          const pathW = bb.x2 - bb.x1;
+          const pathH = bb.y2 - bb.y1;
+          width = Math.ceil(Math.max(pathW, 0) + 2 * m);
+          height = Math.ceil(Math.max(pathH, 0) + 2 * m);
           tx = m - bb.x1;
           ty = m - bb.y1;
         }
@@ -2231,17 +2283,78 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           return;
         }
 
-        const total = chars.length;
+        const scale = sizePx / otFont.unitsPerEm;
+        const baseInnerWidth = otFont.unitsPerEm * scale;
+        const baseInnerHeight = (otFont.ascender - otFont.descender) * scale;
+        const glyphEntries = [];
+        let maxInnerWidth = baseInnerWidth;
+        let maxInnerHeight = baseInnerHeight;
+
+        for (let i = 0; i < chars.length; i++) {
+          const ch = chars[i];
+          try {
+            const glyph = otFont.charToGlyph ? otFont.charToGlyph(ch) : otFont.stringToGlyphs(ch)[0];
+            const gp = glyph.getPath(0, otFont.ascender * scale, sizePx);
+            const pathData = gp.toPathData(precision);
+            let bbox;
+            let glyphWidth;
+            let glyphHeight;
+            if (typeof gp.getBoundingBox === 'function') {
+              const bb = gp.getBoundingBox();
+              if (bb && Number.isFinite(bb.x1) && Number.isFinite(bb.x2) && Number.isFinite(bb.y1) && Number.isFinite(bb.y2)) {
+                bbox = bb;
+                glyphWidth = bb.x2 - bb.x1;
+                glyphHeight = bb.y2 - bb.y1;
+                if (Number.isFinite(glyphWidth)) {
+                  maxInnerWidth = Math.max(maxInnerWidth, glyphWidth);
+                }
+                if (Number.isFinite(glyphHeight)) {
+                  maxInnerHeight = Math.max(maxInnerHeight, glyphHeight);
+                }
+              }
+            }
+            const entry = { ch, glyph, pathData };
+            if (bbox) {
+              entry.bbox = bbox;
+            }
+            if (Number.isFinite(glyphWidth)) {
+              entry.glyphWidth = glyphWidth;
+            }
+            if (Number.isFinite(glyphHeight)) {
+              entry.glyphHeight = glyphHeight;
+            }
+            glyphEntries.push(entry);
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
+        if (glyphEntries.length === 0) {
+          await ensurePreviewLoadingDuration();
+          showPreviewPlaceholder();
+          return;
+        }
+
+        const total = glyphEntries.length;
         const width = String(total).length;
         const pad = n => String(n).padStart(width, '0');
 
         const svgs = [];
-        for (let i = 0; i < chars.length; i++) {
-          const ch = chars[i];
+        for (let i = 0; i < glyphEntries.length; i++) {
+          const entry = glyphEntries[i];
           try {
-            const svg = buildSVGForChar(otFont, ch, { sizePx, precision, mode, strokeWidth, color });
-            svgs.push({ ch, svg });
-            grid.appendChild(makeTile(ch, svg, i, pad, checkerColors));
+            const svg = buildSVGForChar(otFont, entry.ch, {
+              sizePx,
+              precision,
+              mode,
+              strokeWidth,
+              color,
+              precomputed: entry,
+              targetInnerWidth: maxInnerWidth,
+              targetInnerHeight: maxInnerHeight,
+            });
+            svgs.push({ ch: entry.ch, svg });
+            grid.appendChild(makeTile(entry.ch, svg, i, pad, checkerColors));
           } catch (err) { console.error(err); }
         }
         const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
