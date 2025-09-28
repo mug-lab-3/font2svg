@@ -34,6 +34,7 @@
       --wrap-padding-bottom: 48px;
       --card-padding-bottom: 24px;
       --preview-scroll-offset: 12px;
+      --inline-wrap-trigger: 352px;
     }
 
     :root.preview-compact {
@@ -151,16 +152,22 @@
       margin-top: 12px;
     }
 
+    .row.font-row>label.inline,
+    .card .row:nth-child(2)>label.inline {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
     .card .row:nth-child(3) {
       margin-top: 12px;
     }
 
     .switcher {
       position: relative;
-      flex: 0 1 360px;
-      min-width: 280px;
+      flex: 1 1 320px;
+      min-width: 200px;
       min-height: 52px;
-      width: clamp(280px, 36vw, 400px);
+      width: clamp(200px, 30vw, 400px);
       max-width: 100%;
     }
 
@@ -254,7 +261,7 @@
 
     .fontControls {
       flex: 1 1 auto;
-      min-width: 320px;
+      min-width: clamp(0px, 100%, var(--inline-wrap-trigger));
       display: flex;
       align-items: center;
       gap: 12px;
@@ -262,8 +269,8 @@
     }
 
     .styleSelect {
-      flex: 0 1 220px;
-      min-width: 180px;
+      flex: 1 1 200px;
+      min-width: 140px;
     }
 
     .styleSelect.is-hidden {
@@ -395,8 +402,10 @@
     }
 
     textarea {
-      min-width: 472px;
-      width: 592px;
+      flex: 1 1 var(--inline-wrap-trigger);
+      min-width: clamp(0px, 100%, var(--inline-wrap-trigger));
+      width: auto;
+      max-width: none;
       min-height: 4.2em;
       height: auto;
       resize: vertical;
@@ -646,6 +655,17 @@
       textarea {
         min-width: 100%;
         width: 100%
+      }
+
+      .row.font-row,
+      .card .row:nth-child(2) {
+        flex-wrap: wrap;
+      }
+
+      .row.font-row>label.inline,
+      .card .row:nth-child(2)>label.inline {
+        flex: 0 0 auto;
+        white-space: nowrap;
       }
 
       .switcher {
