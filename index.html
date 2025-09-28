@@ -2272,7 +2272,8 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         return fontFamilies[idx] || null;
       }
 
-      async function switchFontDescriptor(variant) {
+      async function switchFontDescriptor(variant, options = {}) {
+        const { showLoading = true } = options;
         if (!variant || isSwitchingFont) return;
         isSwitchingFont = true;
         await new Promise((resolve) => {
@@ -2287,7 +2288,9 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           elDlAll.disabled = true;
           elDlAll.onclick = null;
         }
-        showPreviewLoading('SVG を生成しています…');
+        if (showLoading) {
+          showPreviewLoading('SVG を生成しています…');
+        }
         if (elList) elList.disabled = true;
         if (elStyleList) elStyleList.disabled = true;
         try {
@@ -2302,7 +2305,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           const resolvedName = variant.fullName || variant.postscriptName || fd.fullName || fd.postscriptName || `${variant.familyName || ''} ${variant.styleName || ''}`.trim() || 'Local Font';
           if (elFontName) elFontName.textContent = resolvedName;
           currentFontName = resolvedName;
-          await generateAll({ instant: false });
+          await generateAll({ instant: !showLoading });
         } catch (err) {
           console.error(err);
         } finally {
@@ -2433,7 +2436,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         const variantIdx = Number(value);
         if (!Number.isInteger(variantIdx) || variantIdx < 0 || variantIdx >= family.variants.length) return;
         updateSettings({ fontFamilyKey: family.key || family.baseName || '', fontVariantIndex: variantIdx }, { immediate: true });
-        await switchFontDescriptor(family.variants[variantIdx]);
+        await switchFontDescriptor(family.variants[variantIdx], { showLoading: false });
       }
 
       if (elList) {
