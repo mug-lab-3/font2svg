@@ -2095,7 +2095,13 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           resetStyleSelect();
           return;
         }
-        updateSettings({ fontFamilyKey: family.key || family.baseName || '' });
+        const nextKey = family.key || family.baseName || '';
+        const prevKey = getPersistedSetting('fontFamilyKey');
+        if (nextKey !== prevKey) {
+          updateSettings({ fontFamilyKey: nextKey, fontVariantIndex: undefined });
+        } else {
+          updateSettings({ fontFamilyKey: nextKey });
+        }
         populateStyleSelect(family);
       }
 
