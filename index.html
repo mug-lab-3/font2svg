@@ -1058,6 +1058,7 @@
 
       const SETTINGS_KEY = 'font2svg.settings.v1';
       const SETTINGS_SAVE_DELAY_MS = 200;
+      const TEXT_INPUT_DEBOUNCE_MS = 600;
 
       const storageAvailable = detectStorageAvailability();
       let persistedSettings = loadPersistedSettings();
@@ -1422,6 +1423,7 @@
       const fontParseCache = new WeakMap();
       const previewFamilyNameMap = new Map();
       let previewFamilyCounter = 0;
+      let isTextComposing = false;
 
       const JA_LOCALES = ['ja', 'ja-JP', 'ja_JP'];
       const EN_LOCALES = ['en', 'en-US', 'en-GB'];
@@ -1623,9 +1625,26 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
         queueGenerate({ instant: true, delay: 0 });
       });
-      elText.addEventListener('input', () => {
+      const scheduleTextPreview = () => {
+        queueGenerate({ instant: false, delay: TEXT_INPUT_DEBOUNCE_MS });
+      };
+
+      elText.addEventListener('compositionstart', () => {
+        isTextComposing = true;
+      });
+
+      elText.addEventListener('compositionend', () => {
+        isTextComposing = false;
         updateSettings({ text: elText.value });
-        queueGenerate({ instant: false, delay: 250 });
+        scheduleTextPreview();
+      });
+
+      elText.addEventListener('input', (event) => {
+        updateSettings({ text: elText.value });
+        if ((event && event.isComposing) || isTextComposing) {
+          return;
+        }
+        scheduleTextPreview();
       });
 
       function toggleFontControls(showList) {
