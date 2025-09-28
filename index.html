@@ -200,45 +200,38 @@
 
     #fontButtonWrap {
       width: fit-content;
+    }
+
+    #btnListLocal {
       position: relative;
+      z-index: 1;
+      border: 2px solid transparent;
+      box-shadow: none;
+      transition: box-shadow .18s ease, border-color .18s ease;
     }
 
-    #fontButtonWrap::after {
-      content: '';
-      position: absolute;
-      inset: -6px;
-      border-radius: 18px;
-      border: 2px solid rgba(174, 117, 218, 0.45);
-      box-shadow: 0 0 0 0 rgba(174, 117, 218, 0.2);
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(0.96);
-      transition: opacity .2s ease;
-    }
+    @keyframes font-button-load-glow {
 
-    #fontButtonWrap.is-active::after {
-      animation: font-button-outline-pulse 1.8s ease-in-out infinite both;
-    }
-
-    #fontButtonWrap.is-active:hover::after,
-    #fontButtonWrap.is-active:focus-within::after {
-      animation-play-state: paused;
-      opacity: 0;
-    }
-
-    @keyframes font-button-outline-pulse {
       0%,
       100% {
-        opacity: 0.25;
-        transform: scale(0.96);
-        box-shadow: 0 0 0 0 rgba(174, 117, 218, 0.2);
+        box-shadow: 0 0 4px var(--accent-strong);
       }
 
       50% {
-        opacity: 0.7;
-        transform: scale(1.06);
-        box-shadow: 0 0 12px rgba(174, 117, 218, 0.45);
+        box-shadow: 0 0 12px 4px var(--accent-strong);
       }
+    }
+
+    #fontButtonWrap.is-active #btnListLocal {
+      border: 2px solid var(--accent-strong);
+      animation: font-button-load-glow 1.5s ease-in-out infinite;
+    }
+
+    #fontButtonWrap.is-active #btnListLocal:hover,
+    #fontButtonWrap.is-active #btnListLocal:focus-visible {
+      animation-play-state: paused;
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 10px 3px var(--accent-strong);
     }
 
     .switcher .switchItem.is-active {
