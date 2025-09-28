@@ -1,2 +1,2 @@
 // Update this value whenever assets change.
-self.version = 'v1.0.05';
+self.version = 'v1.1.00';

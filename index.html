@@ -893,8 +893,41 @@
     }
 
     /* Support note (Local Font Access unsupported) */
+    .font-status-block {
+      margin: -10px 0 4px;
+      display: grid;
+      gap: 4px;
+      flex: 1 1 100%;
+    }
+
+    .row.font-row {
+      align-items: flex-start;
+    }
+
+    .row.font-row>label.inline {
+      padding-top: 0;
+      min-height: 52px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .font-status {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      min-height: 1.4em;
+      transition: color .18s ease;
+    }
+
+    .font-status[data-state="loading"] {
+      color: var(--accent-strong);
+    }
+
+    .font-status[data-state="error"] {
+      color: #ff8787;
+    }
+
     #supportNote {
-      margin-top: 6px;
       font-size: 13px;
       color: var(--muted);
       line-height: 1.5;
@@ -945,7 +978,7 @@
     </header>
 
     <section class="card">
-      <div class="row">
+      <div class="row font-row">
         <label class="inline" for="localList">
           <span class="material-symbols-outlined" aria-hidden="true">font_download</span>
           <span data-i18n="font">フォント</span>
@@ -962,7 +995,10 @@
             </div>
           </div>
           <select id="styleList" class="styleSelect is-hidden" disabled aria-label="スタイル"></select>
-          <div id="supportNote" aria-live="polite"></div>
+          <div class="font-status-block">
+            <div id="fontStatus" class="font-status" aria-live="polite"></div>
+            <div id="supportNote" aria-live="polite"></div>
+          </div>
         </div>
       </div>
 
@@ -1046,6 +1082,7 @@
       const elSupport = $("supportNote");
       const elFontButtonWrap = $("fontButtonWrap");
       const elListWrap = $("fontListWrap");
+      const elFontStatus = $("fontStatus");
 
       const elText = $("text");
       const elMode = $("mode");
@@ -1063,6 +1100,7 @@
       const storageAvailable = detectStorageAvailability();
       let persistedSettings = loadPersistedSettings();
       let saveSettingsTimer = null;
+      let fontStatusSnapshot = { state: '', loaded: 0, total: 0 };
 
       applyInitialSettings();
 
@@ -1429,10 +1467,14 @@
       const EN_LOCALES = ['en', 'en-US', 'en-GB'];
 
       let fontFamilies = [];
+      let loadedVariants = [];
+      let loadedVariantSet = new WeakSet();
+      let fontLoadSession = 0;
       let otFont = null;
       let isSwitchingFont = false;
       let currentFontName = '';
       let autoGenTimer = null;
+      let variantIdCounter = 0;
 
       function queueGenerate(opts = {}) {
         const { instant = false, delay = 150 } = opts;
@@ -1448,7 +1490,35 @@
         }, wait);
       }
 
-      // Local Font Access 対応可否は I18N 利用後に判定（t() 使用のため） -> 位置を後段に移動
+      function resetLoadedVariants() {
+        loadedVariants = [];
+        loadedVariantSet = new WeakSet();
+        fontFamilies = [];
+        fontStatusSnapshot = { state: '', loaded: 0, total: 0 };
+      }
+
+      function registerLoadedVariant(variant) {
+        if (!variant || variant.isCollection) return false;
+        if (loadedVariantSet.has(variant)) return false;
+        ensureVariantId(variant);
+        loadedVariantSet.add(variant);
+        loadedVariants.push(variant);
+        return true;
+      }
+
+      function ensureVariantId(variant) {
+        if (!variant) return '';
+        if (typeof variant.variantId === 'string' && variant.variantId) {
+          return variant.variantId;
+        }
+        const id = `vf_${++variantIdCounter}`;
+        try {
+          Object.defineProperty(variant, 'variantId', { value: id, writable: false, enumerable: false, configurable: true });
+        } catch (_) {
+          variant.variantId = id;
+        }
+        return id;
+      }
 
       // ================= I18N =================
       const I18N = {
@@ -1473,7 +1543,11 @@
           svgButton: 'SVG',
           charQuoteOpen: '「',
           charQuoteClose: '」',
-          localFontUnsupported: 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。'
+          localFontUnsupported: 'この環境では Local Font Access を利用できません。Chromium系ブラウザをご利用ください。',
+          fontStatusLoading: 'フォント読み込み中：{current}/{total}',
+          fontStatusDone: 'フォント読み込みが完了しました。',
+          fontStatusEmpty: '利用可能なフォントが見つかりませんでした。',
+          fontStatusError: 'フォント読み込みでエラーが発生しました。'
         },
         en: {
           appTitle: 'Font2SVG - Text to SVG Converter',
@@ -1496,7 +1570,11 @@
           svgButton: 'SVG',
           charQuoteOpen: '"',
           charQuoteClose: '"',
-          localFontUnsupported: 'Local Font Access is not available in this environment. Please use a Chromium-based browser.'
+          localFontUnsupported: 'Local Font Access is not available in this environment. Please use a Chromium-based browser.',
+          fontStatusLoading: 'Loading fonts: {current}/{total}',
+          fontStatusDone: 'Font loading complete.',
+          fontStatusEmpty: 'No available fonts were found.',
+          fontStatusError: 'Unable to load fonts. Please try again.'
         }
       };
 
@@ -1507,7 +1585,128 @@
 
       function t(key) {
         const loc = getCurrentLocale();
-        return (I18N[loc] && I18N[loc][key]) || (I18N.en && I18N.en[key]) || key;
+        const fallbacks = [loc, 'en'];
+        for (const lang of fallbacks) {
+          const dict = I18N[lang];
+          if (dict && Object.prototype.hasOwnProperty.call(dict, key)) {
+            const value = dict[key];
+            if (value !== undefined && value !== null) {
+              return value;
+            }
+          }
+        }
+        return key;
+      }
+
+      function formatTemplate(template, params = {}) {
+        if (!template) return '';
+        return String(template).replace(/\{(\w+)\}/g, (match, key) => {
+          if (Object.prototype.hasOwnProperty.call(params, key)) {
+            return params[key];
+          }
+          return match;
+        });
+      }
+
+      function setFontStatus(state, details = {}) {
+        if (!elFontStatus) return;
+        const snapshot = fontStatusSnapshot || {};
+        const force = details && details.forceUpdate;
+        if (!state) {
+          fontStatusSnapshot = { state: '', loaded: 0, total: 0 };
+          elFontStatus.textContent = '';
+          elFontStatus.dataset.state = '';
+          return;
+        }
+        if (!force && snapshot.state === state && snapshot.loaded === details.loaded && snapshot.total === details.total) return;
+        fontStatusSnapshot = {
+          state,
+          loaded: details.loaded ?? snapshot.loaded ?? 0,
+          total: details.total ?? snapshot.total ?? 0,
+        };
+        let textKey = '';
+        const params = {
+          current: fontStatusSnapshot.loaded,
+          total: fontStatusSnapshot.total,
+        };
+        switch (state) {
+          case 'loading':
+            textKey = 'fontStatusLoading';
+            break;
+          case 'done':
+            textKey = 'fontStatusDone';
+            break;
+          case 'empty':
+            textKey = 'fontStatusEmpty';
+            break;
+          case 'error':
+            textKey = 'fontStatusError';
+            break;
+          default:
+            textKey = '';
+        }
+        const text = textKey ? formatTemplate(t(textKey), params).trim() : '';
+        if (!text) {
+          fontStatusSnapshot = { state: '', loaded: 0, total: 0 };
+          elFontStatus.textContent = '';
+          elFontStatus.dataset.state = '';
+          return;
+        }
+        elFontStatus.textContent = text;
+        elFontStatus.dataset.state = state;
+      }
+
+      fontStatusSnapshot = { state: '', loaded: 0, total: 0 };
+
+      function renderFontFamilies(options = {}) {
+        const { preserveSelection = true, targetKey } = options;
+        if (!elList) return null;
+
+        const prevSelection = preserveSelection ? getSelectedFamily() : null;
+        const persistedKey = (getPersistedSetting('fontFamilyKey') || '').toLowerCase();
+        const preferredKey = (targetKey || (prevSelection && prevSelection.key) || persistedKey || '').toLowerCase() || null;
+        const prevScrollTop = elList.scrollTop;
+
+        fontFamilies = prepareFamilyEntries(loadedVariants);
+        updateFamilyDisplayNames();
+
+        elList.innerHTML = '';
+        const frag = document.createDocumentFragment();
+
+        fontFamilies.forEach((family, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          option.textContent = family.displayName || family.baseName || family.nameEn || family.nameJa || 'Local Font';
+          if (family.variants[0]) {
+            assignOptionFont(option, family.variants[0]);
+          }
+          const previewVariant = family.variants.find(v => v && v.fontFaceFamily);
+          if (previewVariant) {
+            applyOptionPreview(option, previewVariant);
+          }
+          frag.appendChild(option);
+        });
+
+        elList.appendChild(frag);
+
+        let selectedIndex = -1;
+        if (preferredKey) {
+          selectedIndex = fontFamilies.findIndex(family => family.key === preferredKey);
+        }
+        if (selectedIndex < 0 && fontFamilies.length > 0) {
+          selectedIndex = 0;
+        }
+
+        if (selectedIndex >= 0) {
+          elList.selectedIndex = selectedIndex;
+        } else {
+          elList.value = '';
+        }
+
+        elList.scrollTop = prevScrollTop;
+        toggleFontControls(fontFamilies.length > 0);
+
+        return getSelectedFamily();
       }
 
       function applyTranslations() {
@@ -1684,6 +1883,12 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
 
       function assignOptionFont(option, variant) {
         if (!option || !variant) return;
+        const variantId = ensureVariantId(variant);
+        if (variantId) {
+          option.dataset.variantId = variantId;
+        } else {
+          delete option.dataset.variantId;
+        }
         if (Number.isFinite(variant.weightValue)) {
           option.dataset.weightClass = String(variant.weightValue);
         } else {
@@ -1810,6 +2015,31 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
       }
 
+      async function hydrateVariant(variant, options = {}) {
+        const { loadFontFace = true } = options;
+        if (!variant || variant.isCollection) return null;
+        try {
+          const buffer = await loadVariantBuffer(variant);
+          if (!buffer) return null;
+          if (isCollectionBuffer(buffer)) {
+            variant.isCollection = true;
+            loadBufferCache.delete(variant);
+            variant.buffer = null;
+            return null;
+          }
+          await enrichVariantLocaleNames(variant);
+          if (loadFontFace !== false) {
+            await ensureFontFaceForVariant(variant);
+          }
+          ensureVariantId(variant);
+          variant.displayLabel = buildVariantLabel(variant);
+          return variant;
+        } catch (err) {
+          console.error(err);
+          return null;
+        }
+      }
+
       function ensurePreviewFamilyName(variant) {
         const key = variant.postscriptName || variant.fullName || `${variant.familyName}-${variant.styleName}-${variant.weightLabel}`;
         if (!previewFamilyNameMap.has(key)) {
@@ -1885,6 +2115,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           isItalic,
           isOblique,
         };
+        ensureVariantId(variant);
         variant.displayLabel = buildVariantLabel(variant);
         return variant;
       }
@@ -2046,8 +2277,13 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
       }
 
-      function populateStyleSelect(family) {
+      function populateStyleSelect(family, options = {}) {
+        const { preserveSelection = false, forceSwitch = true } = options;
         if (!elStyleList) return;
+        const preservedOption = (preserveSelection && elStyleList.options.length > 0 && Number.isInteger(elStyleList.selectedIndex))
+          ? elStyleList.options[elStyleList.selectedIndex]
+          : null;
+        const preservedVariantId = preservedOption && preservedOption.dataset ? preservedOption.dataset.variantId : '';
         resetStyleSelect();
         if (!family || !Array.isArray(family.variants) || family.variants.length === 0) {
           updateStyleDisabledState(null);
@@ -2079,16 +2315,27 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         if (regularIndex < 0) regularIndex = 0;
 
         let targetIndex = regularIndex;
-        const savedFamilyKey = getPersistedSetting('fontFamilyKey');
-        const savedVariantIndex = getPersistedSetting('fontVariantIndex');
-        if (family.key && savedFamilyKey === family.key && Number.isInteger(savedVariantIndex) && savedVariantIndex >= 0 && savedVariantIndex < family.variants.length) {
-          targetIndex = savedVariantIndex;
+        if (preserveSelection && preservedVariantId) {
+          const preservedMatch = family.variants.findIndex(v => ensureVariantId(v) === preservedVariantId);
+          if (preservedMatch >= 0) {
+            targetIndex = preservedMatch;
+          }
+        } else {
+          const savedFamilyKey = getPersistedSetting('fontFamilyKey');
+          const savedVariantIndex = getPersistedSetting('fontVariantIndex');
+          if (family.key && savedFamilyKey === family.key && Number.isInteger(savedVariantIndex) && savedVariantIndex >= 0 && savedVariantIndex < family.variants.length) {
+            targetIndex = savedVariantIndex;
+          }
+        }
+
+        if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= family.variants.length) {
+          targetIndex = 0;
         }
 
         elStyleList.selectedIndex = targetIndex;
         updateSettings({ fontFamilyKey: family.key || family.baseName || '', fontVariantIndex: targetIndex });
         const targetVariant = family.variants[targetIndex];
-        if (targetVariant) {
+        if (targetVariant && forceSwitch) {
           void switchFontDescriptor(targetVariant);
         }
       }
@@ -2168,6 +2415,11 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           updateFamilyDisplayNames();
           applyFamilyOptionLabels();
           applyTranslations();
+          setFontStatus(fontStatusSnapshot.state || 'idle', {
+            loaded: fontStatusSnapshot.loaded,
+            total: fontStatusSnapshot.total,
+            forceUpdate: true,
+          });
         });
       }
       resetStyleSelect();
@@ -2209,127 +2461,175 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
 
       elListBtn.addEventListener('click', async () => {
         if (!supportLocal) return;
+        const sessionId = ++fontLoadSession;
+        let processedCount = 0;
+        let totalCount = 0;
+        let styleInitialized = false;
+
+        const isSessionActive = () => sessionId === fontLoadSession;
+
+        const finalize = () => {
+          if (!isSessionActive()) return;
+          hideLoading();
+          elListBtn.disabled = false;
+        };
+
+        const focusFontList = () => {
+          requestAnimationFrame(() => {
+            if (!isSessionActive()) return;
+            if (!elList) return;
+            try { elList.focus({ preventScroll: true }); }
+            catch (_) {
+              try { elList.focus(); }
+              catch (__) { }
+            }
+          });
+        };
+
         try {
           elListBtn.disabled = true;
           showLoading(t('loadingFonts'));
           resetStyleSelect();
+          updateStyleDisabledState(null);
+          toggleFontControls(false);
+          resetLoadedVariants();
 
           const fonts = await window.queryLocalFonts();
+          if (!isSessionActive()) return;
+
           const seen = new Set();
           const unique = [];
           for (const f of fonts) {
             const key = f.postscriptName || f.fullName || (f.family + ':' + (f.style || ''));
-            if (!seen.has(key)) { seen.add(key); unique.push(f); }
+            if (!seen.has(key)) {
+              seen.add(key);
+              unique.push(f);
+            }
           }
           unique.sort((a, b) => (a.fullName || a.family).localeCompare(b.fullName || b.family));
 
-          const variants = [];
-          updateLoadingProgress(0, unique.length);
-          for (let i = 0; i < unique.length; i++) {
-            const fd = unique[i];
-            try {
-              const blob = await fd.blob();
-              const headBuf = await blob.slice(0, 4).arrayBuffer();
-              if (isCollectionBuffer(headBuf)) {
-                updateLoadingProgress(i + 1, unique.length);
-                continue;
-              }
-              const variant = buildVariantFromDescriptor(fd);
-              const buffer = await blob.arrayBuffer();
-              variant.buffer = buffer;
-              // enrich locale names
-              try {
-                const font = opentype.parse(buffer);
-                const ja = extractFamilyNameFromFont(font, JA_LOCALES, variant.familyName);
-                const en = extractFamilyNameFromFont(font, EN_LOCALES, variant.familyName || ja);
-                variant.familyNameJa = ja || variant.familyName;
-                variant.familyNameEn = en || ja || variant.familyName;
-                const primary = variant.familyNameEn || variant.familyNameJa || variant.familyName;
-                if (primary) {
-                  variant.familyName = primary;
-                  variant.familyKey = primary.toLowerCase();
-                }
-              } catch (e) {
-                console.error(e);
-                variant.familyNameJa = variant.familyName;
-                variant.familyNameEn = variant.familyName;
-              }
-              variant.hasLocalizedNames = true;
-              // FontFace
-              const familyName = ensurePreviewFamilyName(variant);
-              const source = new Uint8Array(buffer);
-              const fontFace = new FontFace(familyName, source);
-              await fontFace.load();
-              document.fonts.add(fontFace);
-              variant.fontFaceFamily = fontFace.family || familyName;
-              variants.push(variant);
-            } catch (e) {
-              console.error(e);
-            } finally {
-              updateLoadingProgress(i + 1, unique.length);
-            }
-          }
-
-          fontFamilies = prepareFamilyEntries(variants);
-          updateFamilyDisplayNames();
-
-          if (!fontFamilies.length) {
-            toggleFontControls(false);
-            updateStyleDisabledState(null);
-            updateSettings({ fontFamilyKey: undefined, fontVariantIndex: undefined }, { immediate: true });
+          if (unique.length === 0) {
+            setFontStatus('empty', { loaded: 0, total: 0 });
             return;
           }
 
-          elList.innerHTML = '';
-          const frag = document.createDocumentFragment();
+          const variants = unique.map(fd => buildVariantFromDescriptor(fd));
+          const savedFamilyKey = (getPersistedSetting('fontFamilyKey') || '').toLowerCase();
+          const savedVariantIndex = getPersistedSetting('fontVariantIndex');
 
-          fontFamilies.forEach((family, index) => {
-            const option = document.createElement('option');
-            option.value = String(index);
-            option.textContent = family.displayName || family.baseName || family.nameEn || family.nameJa;
-            if (family.variants[0]) assignOptionFont(option, family.variants[0]);
-            frag.appendChild(option);
-          });
-
-          elList.appendChild(frag);
-          toggleFontControls(true);
-          resetStyleSelect();
-          updateStyleDisabledState(null);
-
-          if (fontFamilies.length > 0) {
-            let initialIndex = 0;
-            const savedFamilyKey = getPersistedSetting('fontFamilyKey');
-            if (typeof savedFamilyKey === 'string') {
-              const matchedIndex = fontFamilies.findIndex(family => family.key === savedFamilyKey);
-              if (matchedIndex >= 0) {
-                initialIndex = matchedIndex;
-              }
-            }
-            if (initialIndex < 0 || initialIndex >= fontFamilies.length) {
-              initialIndex = 0;
-            }
-            elList.selectedIndex = initialIndex;
-            handleFamilyChange();
+          const initialFamilies = prepareFamilyEntries(variants);
+          let prioritizedFamily = null;
+          if (savedFamilyKey) {
+            prioritizedFamily = initialFamilies.find(family => family.key === savedFamilyKey);
+          }
+          if (!prioritizedFamily && initialFamilies.length > 0) {
+            prioritizedFamily = initialFamilies[0];
           }
 
-          applyFamilyOptionLabels();
+          let prioritizedVariant = null;
+          let prioritizedKey = '';
+          if (prioritizedFamily) {
+            prioritizedKey = prioritizedFamily.key;
+            if (Number.isInteger(savedVariantIndex) && savedVariantIndex >= 0 && savedVariantIndex < prioritizedFamily.variants.length) {
+              prioritizedVariant = prioritizedFamily.variants[savedVariantIndex];
+            }
+            if (!prioritizedVariant) {
+              prioritizedVariant = prioritizedFamily.variants[0];
+            }
+          }
 
-          requestAnimationFrame(() => {
-            try { elList.focus({ preventScroll: true }); }
-            catch (_) { try { elList.focus(); } catch (__) { } }
-          });
+          const prioritizedList = [];
+          const prioritizedSet = new Set();
+          if (prioritizedVariant) {
+            prioritizedList.push(prioritizedVariant);
+            prioritizedSet.add(prioritizedVariant);
+          }
+          const backgroundList = variants.filter(variant => !prioritizedSet.has(variant));
 
-          fontFamilies.forEach((family, index) => {
-            const option = elList.options[index];
-            const previewVariant = family.variants && family.variants[0];
-            if (!option || !previewVariant) return;
-            applyOptionPreview(option, previewVariant);
-          });
+          totalCount = prioritizedList.length + backgroundList.length;
+          updateLoadingProgress(0, totalCount);
+          if (totalCount > 0) {
+            setFontStatus('loading', { loaded: 0, total: totalCount });
+          }
+
+          const processVariant = async (variant, opts = {}) => {
+            if (!variant || !isSessionActive()) return;
+            const { immediate = false } = opts;
+            const hydrated = await hydrateVariant(variant, { loadFontFace: true });
+            if (!isSessionActive()) return;
+            processedCount += 1;
+            updateLoadingProgress(processedCount, totalCount);
+            if (totalCount > 0) {
+              const currentLoaded = Math.min(processedCount, totalCount);
+              setFontStatus('loading', { loaded: currentLoaded, total: totalCount });
+            }
+            if (!hydrated) return;
+            if (!registerLoadedVariant(hydrated)) return;
+
+            const selectedFamily = renderFontFamilies({
+              preserveSelection: !immediate,
+              targetKey: immediate ? prioritizedKey : undefined,
+            });
+
+            if (!selectedFamily) {
+              updateStyleDisabledState(null);
+              return;
+            }
+
+            if (!styleInitialized) {
+              populateStyleSelect(selectedFamily);
+              styleInitialized = true;
+              focusFontList();
+              return;
+            }
+
+            if (elStyleList && selectedFamily.variants.length !== elStyleList.options.length) {
+              populateStyleSelect(selectedFamily, { preserveSelection: true, forceSwitch: false });
+            } else {
+              updateStyleDisabledState(selectedFamily);
+            }
+          };
+
+          for (const variant of prioritizedList) {
+            await processVariant(variant, { immediate: true });
+            if (!isSessionActive()) return;
+          }
+
+          if (!styleInitialized) {
+            const selectedFamily = renderFontFamilies({ preserveSelection: false, targetKey: prioritizedKey || undefined });
+            if (selectedFamily) {
+              populateStyleSelect(selectedFamily);
+              styleInitialized = true;
+              focusFontList();
+            } else {
+              updateStyleDisabledState(null);
+            }
+          }
+
+          hideLoading();
+
+          for (const variant of backgroundList) {
+            if (!isSessionActive()) break;
+            await processVariant(variant, { immediate: false });
+            if (!isSessionActive()) break;
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+
+          if (!loadedVariants.length && isSessionActive()) {
+            updateSettings({ fontFamilyKey: undefined, fontVariantIndex: undefined }, { immediate: true });
+            updateStyleDisabledState(null);
+            setFontStatus('empty', { loaded: 0, total: totalCount });
+          } else if (isSessionActive()) {
+            const currentFamily = getSelectedFamily();
+            updateStyleDisabledState(currentFamily);
+            setFontStatus('done', { loaded: loadedVariants.length });
+          }
+
         } catch (err) {
           console.error(err);
+          setFontStatus('error', { loaded: processedCount, total: totalCount });
         } finally {
-          hideLoading();
-          elListBtn.disabled = false;
+          finalize();
         }
       });
 
