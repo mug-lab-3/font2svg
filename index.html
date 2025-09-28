@@ -229,7 +229,6 @@
 
     #fontButtonWrap.is-active #btnListLocal:hover,
     #fontButtonWrap.is-active #btnListLocal:focus-visible {
-      animation-play-state: paused;
       border-color: var(--accent-strong);
       box-shadow: 0 0 10px 3px var(--accent-strong);
     }
@@ -303,6 +302,11 @@
     .btn:hover:not([disabled]) {
       outline: 2px solid var(--accent-strong);
       outline-offset: 2px;
+    }
+
+    #btnListLocal:hover:not([disabled]) {
+      outline: none;
+      outline-offset: 0;
     }
 
     .btn:active:not([disabled]) {
