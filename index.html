@@ -484,6 +484,47 @@
       background: var(--accent-strong);
     }
 
+    .dimension-row {
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dimension-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    .dimension-inputs {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .dimension-inputs label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .dimension-inputs input {
+      width: 96px;
+    }
+
+    .dimension-inputs .dim-separator {
+      font-size: 18px;
+      opacity: .6;
+    }
+
+    .dimension-hint {
+      margin-top: -6px;
+      margin-left: 52px;
+    }
+
     a {
       color: var(--accent-strong);
       text-decoration: none;
@@ -1056,6 +1097,25 @@
           <span data-i18n="px">px</span>
         </label>
       </div>
+      <div class="row dimension-row">
+        <div class="dimension-label">
+          <span class="material-symbols-outlined" aria-hidden="true">straighten</span>
+          <span data-i18n="downloadSize">ダウンロードサイズ</span>
+        </div>
+        <div class="dimension-inputs">
+          <label for="downloadWidth">
+            <span data-i18n="downloadWidth">幅</span>
+            <input id="downloadWidth" type="number" min="1" step="1" inputmode="decimal" />
+          </label>
+          <span class="dim-separator">×</span>
+          <label for="downloadHeight">
+            <span data-i18n="downloadHeight">高さ</span>
+            <input id="downloadHeight" type="number" min="1" step="1" inputmode="decimal" />
+          </label>
+          <span data-i18n="px">px</span>
+        </div>
+      </div>
+      <div class="help dimension-hint" data-i18n="downloadSizeHint">未入力の場合は元のサイズを使用します。</div>
     </section>
 
     <section class="card">
@@ -1108,6 +1168,8 @@
       const elMode = $("mode");
       const elStrokeW = $("strokeW");
       const elColor = $("color");
+      const elDownloadWidth = $("downloadWidth");
+      const elDownloadHeight = $("downloadHeight");
       const elLang = $("lang");
 
       const elSpinUp = elStrokeW.parentElement.querySelector('.spin-up');
@@ -1239,6 +1301,16 @@
           }
         }
 
+        const storedDlWidth = getPersistedSetting('downloadWidth');
+        if (elDownloadWidth) {
+          setDimensionInputValue(elDownloadWidth, storedDlWidth);
+        }
+
+        const storedDlHeight = getPersistedSetting('downloadHeight');
+        if (elDownloadHeight) {
+          setDimensionInputValue(elDownloadHeight, storedDlHeight);
+        }
+
         const storedText = getPersistedSetting('text');
         if (elText && typeof storedText === 'string') {
           elText.value = storedText;
@@ -1365,6 +1437,32 @@
         const darkContrast = contrastRatio(textLum, darkLum);
         const lightContrast = contrastRatio(textLum, lightLum);
         return darkContrast >= lightContrast ? checkerProfiles.dark : checkerProfiles.light;
+      }
+
+      function parsePositiveNumber(value) {
+        if (value === '' || value === null || value === undefined) return NaN;
+        const numeric = typeof value === 'number' ? value : parseFloat(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) return NaN;
+        return numeric;
+      }
+
+      function formatDimensionValue(value) {
+        if (!Number.isFinite(value) || value <= 0) return '';
+        const rounded = Math.round(value * 1000) / 1000;
+        if (Number.isInteger(rounded)) {
+          return String(Math.trunc(rounded));
+        }
+        return String(rounded);
+      }
+
+      function setDimensionInputValue(el, value) {
+        if (!el) return;
+        const numeric = parsePositiveNumber(value);
+        if (Number.isFinite(numeric)) {
+          el.value = formatDimensionValue(numeric);
+        } else if (value === '' || value === null || value === undefined) {
+          el.value = '';
+        }
       }
 
       function computeBottomSpacing(node) {
@@ -1564,6 +1662,10 @@
           solid: '塗り',
           stroke: '枠線',
           strokeWidth: '線幅',
+          downloadSize: 'ダウンロードサイズ',
+          downloadWidth: '幅',
+          downloadHeight: '高さ',
+          downloadSizeHint: '未入力の場合は元のサイズを使用します。',
           px: 'px',
           downloadAll: '全SVG一括ダウンロード（ZIP）',
           previewPlaceholder: 'ここに各文字のSVGを表示します。',
@@ -1591,6 +1693,10 @@
           solid: 'Fill',
           stroke: 'Stroke',
           strokeWidth: 'Stroke Width',
+          downloadSize: 'Download Size',
+          downloadWidth: 'Width',
+          downloadHeight: 'Height',
+          downloadSizeHint: 'Leave blank to use the original size.',
           px: 'px',
           downloadAll: 'Download All SVGs (ZIP)',
           previewPlaceholder: 'SVGs for each character will be shown here.',
@@ -1838,6 +1944,39 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       })();
       if (!supportLocal && document.documentElement.classList.contains('unsupported')) {
         return;
+      }
+
+      function handleDownloadSizeChange() {
+        const widthValue = elDownloadWidth ? parsePositiveNumber(elDownloadWidth.value) : NaN;
+        const heightValue = elDownloadHeight ? parsePositiveNumber(elDownloadHeight.value) : NaN;
+
+        if (elDownloadWidth) {
+          if (Number.isFinite(widthValue)) {
+            elDownloadWidth.value = formatDimensionValue(widthValue);
+          } else if (elDownloadWidth.value !== '') {
+            elDownloadWidth.value = '';
+          }
+        }
+
+        if (elDownloadHeight) {
+          if (Number.isFinite(heightValue)) {
+            elDownloadHeight.value = formatDimensionValue(heightValue);
+          } else if (elDownloadHeight.value !== '') {
+            elDownloadHeight.value = '';
+          }
+        }
+
+        updateSettings({
+          downloadWidth: Number.isFinite(widthValue) ? widthValue : undefined,
+          downloadHeight: Number.isFinite(heightValue) ? heightValue : undefined,
+        });
+      }
+
+      if (elDownloadWidth) {
+        elDownloadWidth.addEventListener('change', handleDownloadSizeChange);
+      }
+      if (elDownloadHeight) {
+        elDownloadHeight.addEventListener('change', handleDownloadSizeChange);
       }
 
       elColor.addEventListener('input', () => {
@@ -2735,12 +2874,14 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
 
         const style = (mode === 'solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
-        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${pathData}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
-        return svg;
+        const widthAttr = sizePx;
+        const heightAttr = sizePx;
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${formatDimensionValue(widthAttr)}" height="${formatDimensionValue(heightAttr)}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${pathData}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
+        return { xml: svg, widthAttr, heightAttr };
       }
 
       function buildSVGForText(text, opts) {
-        if (!otFont) return '';
+        if (!otFont) return null;
         const { sizePx, precision, mode, strokeWidth, color } = opts;
         const scale = sizePx / otFont.unitsPerEm;
         const m = sizePx * 0.08;
@@ -2773,8 +2914,93 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
 
         const style = (mode === 'solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
-        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
-        return svg;
+        const widthAttr = width;
+        const heightAttr = height;
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${formatDimensionValue(widthAttr)}" height="${formatDimensionValue(heightAttr)}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${d}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
+        return { xml: svg, widthAttr, heightAttr };
+      }
+
+      function computeDownloadSize(svgInfo) {
+        if (!svgInfo || typeof svgInfo !== 'object') {
+          return null;
+        }
+        const baseWidth = parsePositiveNumber(svgInfo.widthAttr);
+        const baseHeight = parsePositiveNumber(svgInfo.heightAttr);
+        const fallbackWidth = Number.isFinite(baseWidth) ? baseWidth : OUTPUT_SIZE;
+        const fallbackHeight = Number.isFinite(baseHeight) ? baseHeight : OUTPUT_SIZE;
+
+        const requestedWidth = elDownloadWidth ? parsePositiveNumber(elDownloadWidth.value) : NaN;
+        const requestedHeight = elDownloadHeight ? parsePositiveNumber(elDownloadHeight.value) : NaN;
+        const hasWidth = Number.isFinite(requestedWidth);
+        const hasHeight = Number.isFinite(requestedHeight);
+
+        let width = Number.isFinite(baseWidth) ? baseWidth : fallbackWidth;
+        let height = Number.isFinite(baseHeight) ? baseHeight : fallbackHeight;
+
+        if (hasWidth && hasHeight) {
+          width = requestedWidth;
+          height = requestedHeight;
+        } else if (hasWidth && Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+          const scale = requestedWidth / width;
+          if (Number.isFinite(scale) && scale > 0) {
+            width = requestedWidth;
+            height = height * scale;
+          } else {
+            width = requestedWidth;
+          }
+        } else if (hasHeight && Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+          const scale = requestedHeight / height;
+          if (Number.isFinite(scale) && scale > 0) {
+            height = requestedHeight;
+            width = width * scale;
+          } else {
+            height = requestedHeight;
+          }
+        }
+
+        if (!Number.isFinite(width) || width <= 0) {
+          width = hasWidth ? requestedWidth : fallbackWidth;
+        }
+        if (!Number.isFinite(height) || height <= 0) {
+          height = hasHeight ? requestedHeight : fallbackHeight;
+        }
+
+        if (!Number.isFinite(width) || width <= 0) {
+          width = 1;
+        }
+        if (!Number.isFinite(height) || height <= 0) {
+          height = 1;
+        }
+
+        return { width, height };
+      }
+
+      function resizeSvgString(svgText, width, height) {
+        if (typeof svgText !== 'string' || !svgText) {
+          return svgText;
+        }
+        let result = svgText;
+        const widthStr = formatDimensionValue(width);
+        const heightStr = formatDimensionValue(height);
+        if (widthStr) {
+          result = result.replace(/(<svg[^>]*\bwidth=")([^"']*)(")/i, `$1${widthStr}$3`);
+        }
+        if (heightStr) {
+          result = result.replace(/(<svg[^>]*\bheight=")([^"']*)(")/i, `$1${heightStr}$3`);
+        }
+        return result;
+      }
+
+      function prepareSvgForDownload(svgInfo) {
+        if (!svgInfo || typeof svgInfo !== 'object') {
+          return typeof svgInfo === 'string' ? svgInfo : '';
+        }
+        const svgText = typeof svgInfo.xml === 'string' ? svgInfo.xml : '';
+        const size = computeDownloadSize(svgInfo);
+        if (!size) {
+          return svgText;
+        }
+        return resizeSvgString(svgText, size.width, size.height);
       }
 
       function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c])); }
@@ -2791,7 +3017,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         for (const ch of Array.from(noNL)) yield ch;
       }
 
-      function makeTile(char, svg, idx, pad, checkerColors) {
+      function makeTile(char, svgInfo, idx, pad, checkerColors) {
         const tile = document.createElement('div');
         tile.className = 'tile';
         const box = document.createElement('div');
@@ -2800,7 +3026,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           box.style.setProperty('--checker-base', checkerColors.base);
           box.style.setProperty('--checker-overlay', checkerColors.overlay);
         }
-        box.innerHTML = svg;
+        box.innerHTML = svgInfo.xml;
         const svgEl = box.querySelector('svg');
         if (svgEl) {
           svgEl.setAttribute('width', PREVIEW_SIZE);
@@ -2817,8 +3043,9 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         btn.className = 'btn char-dl-btn';
         btn.innerHTML = '<span class="material-symbols-outlined">download</span> ' + t('svgButton');
         btn.addEventListener('click', () => {
+          const svgText = prepareSvgForDownload(svgInfo);
           const a = document.createElement('a');
-          a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+          a.href = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
           a.download = `N${pad(idx + 1)}_${safeName(char)}.svg`;
           a.click();
           URL.revokeObjectURL(a.href);
@@ -2922,7 +3149,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         for (let i = 0; i < glyphEntries.length; i++) {
           const entry = glyphEntries[i];
           try {
-            const svg = buildSVGForChar(otFont, entry.ch, {
+            const svgInfo = buildSVGForChar(otFont, entry.ch, {
               sizePx,
               precision,
               mode,
@@ -2932,11 +3159,11 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
               targetInnerWidth: maxInnerWidth,
               targetInnerHeight: maxInnerHeight,
             });
-            svgs.push({ ch: entry.ch, svg });
-            grid.appendChild(makeTile(entry.ch, svg, i, pad, checkerColors));
+            svgs.push({ ch: entry.ch, svgInfo });
+            grid.appendChild(makeTile(entry.ch, svgInfo, i, pad, checkerColors));
           } catch (err) { console.error(err); }
         }
-        const fullTextSvg = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
+        const fullTextSvgInfo = buildSVGForText(elText.value, { sizePx, precision, mode, strokeWidth, color });
 
         await ensurePreviewLoadingDuration();
         clearPreviewLoading();
@@ -2950,10 +3177,13 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           if (!window.JSZip) { alert(t('zipError')); return; }
           const zip = new JSZip();
           for (let i = 0; i < svgs.length; i++) {
-            const { ch, svg } = svgs[i];
-            zip.file(`N${pad(i + 1)}_${safeName(ch)}.svg`, svg);
+            const { ch, svgInfo } = svgs[i];
+            const scaledSvg = prepareSvgForDownload(svgInfo);
+            zip.file(`N${pad(i + 1)}_${safeName(ch)}.svg`, scaledSvg);
           }
-          zip.file('full_text.svg', fullTextSvg);
+          if (fullTextSvgInfo) {
+            zip.file('full_text.svg', prepareSvgForDownload(fullTextSvgInfo));
+          }
           const blob = await zip.generateAsync({ type: 'blob' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
