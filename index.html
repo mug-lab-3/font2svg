@@ -2601,8 +2601,86 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
       }
       resetStyleSelect();
 
-      function safeName(s) {
-        return String(s ?? 'LocalFont').replace(/[\\/:*?"<>|\r\n]/g, '_').trim() || 'LocalFont';
+      function formatCodePoint(cp) {
+        if (!Number.isFinite(cp) || cp < 0) return '';
+        return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
+      }
+
+      function safeName(input, options = {}) {
+        const fallback = (typeof options.fallback === 'string' && options.fallback.trim()) || 'LocalFont';
+        const maxLength = Number.isFinite(options.maxLength) && options.maxLength > 0 ? Math.floor(options.maxLength) : 80;
+        const enableCodePointFallback = options.codePointFallback !== false;
+
+        if (input === null || input === undefined) {
+          return fallback;
+        }
+
+        let text = String(input);
+        try {
+          text = text.normalize('NFKC');
+        } catch (err) {
+          // If normalization fails, fall back to the original string
+        }
+        const trimmed = text.trim();
+        const hasVisible = trimmed.length > 0;
+        const baseText = hasVisible ? trimmed : text;
+        if (!baseText) {
+          return fallback;
+        }
+
+        let asciiSource = baseText;
+        try {
+          asciiSource = asciiSource.normalize('NFKD');
+        } catch (err) {
+          // Ignore, fall back to the original string
+        }
+        asciiSource = asciiSource.replace(/[\u0300-\u036f]/g, '');
+
+        const cleaned = asciiSource.replace(/[\u0000-\u001F\u007F]/g, '');
+        let sanitized = cleaned
+          .replace(/[\s]+/g, '-')
+          .replace(/[^0-9A-Za-z._-]+/g, '-');
+
+        sanitized = sanitized
+          .replace(/-+/g, '-')
+          .replace(/_+/g, '_')
+          .replace(/^[-_.]+/, '')
+          .replace(/[-_.]+$/, '');
+
+        if (sanitized.length > maxLength) {
+          sanitized = sanitized.slice(0, maxLength).replace(/[-_.]+$/, '');
+        }
+
+        if (sanitized) {
+          return sanitized;
+        }
+
+        if (enableCodePointFallback) {
+          let fallbackName = '';
+          for (const ch of baseText) {
+            const cp = ch.codePointAt(0);
+            const label = formatCodePoint(cp);
+            if (!label) {
+              continue;
+            }
+            const candidate = fallbackName ? `${fallbackName}_${label}` : label;
+            if (candidate.length > maxLength) {
+              if (!fallbackName) {
+                return label.slice(0, maxLength);
+              }
+              break;
+            }
+            fallbackName = candidate;
+            if (fallbackName.length >= maxLength) {
+              break;
+            }
+          }
+          if (fallbackName) {
+            return fallbackName;
+          }
+        }
+
+        return fallback;
       }
 
       function isCollectionBuffer(buf) {
@@ -3046,7 +3124,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           const svgText = prepareSvgForDownload(svgInfo);
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
-          a.download = `N${pad(idx + 1)}_${safeName(char)}.svg`;
+          a.download = `N${pad(idx + 1)}_${safeName(char, { fallback: 'glyph', maxLength: 48 })}.svg`;
           a.click();
           URL.revokeObjectURL(a.href);
         });
@@ -3179,12 +3257,12 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           for (let i = 0; i < svgs.length; i++) {
             const { ch, svgInfo } = svgs[i];
             const scaledSvg = prepareSvgForDownload(svgInfo);
-            zip.file(`N${pad(i + 1)}_${safeName(ch)}.svg`, scaledSvg);
+            zip.file(`N${pad(i + 1)}_${safeName(ch, { fallback: 'glyph', maxLength: 48 })}.svg`, scaledSvg);
           }
           if (fullTextSvgInfo) {
             zip.file('full_text.svg', prepareSvgForDownload(fullTextSvgInfo));
           }
-          const blob = await zip.generateAsync({ type: 'blob' });
+          const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
 
@@ -3195,7 +3273,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
           const hh = String(dt.getHours()).padStart(2, '0');
           const mm = String(dt.getMinutes()).padStart(2, '0');
           const ss = String(dt.getSeconds()).padStart(2, '0');
-          const safeFontName = safeName(currentFontName).replace(/\s+/g, '-');
+          const safeFontName = safeName(currentFontName, { fallback: 'font', maxLength: 80 });
           const zipName = `svgs_${y}${m}${d}-${hh}${mm}${ss}_${safeFontName}.zip`;
 
           a.download = zipName;
