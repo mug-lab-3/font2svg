@@ -1,7 +1,3 @@
--- ===============================
--- Fusion Script: clone-polyline-masks.lua
--- ===============================
-
 local comp = fu:GetCurrentComp()
 
 local function getPolylineMasks()
@@ -19,22 +15,6 @@ local function getPolylineMasks()
     return masks
 end
 
-local function getPrimaryOutput(tool)
-    if not tool then return nil end
-
-    local outputs = tool:GetOutputList()
-    if not outputs then return nil end
-
-    if outputs.Output then return outputs.Output end
-    if outputs.ShapeOut then return outputs.ShapeOut end
-
-    for _, out in pairs(outputs) do
-        return out
-    end
-
-    return nil
-end
-
 local function connectShapes(polygons)
     if not polygons or #polygons == 0 then return end
 
@@ -50,36 +30,26 @@ local function connectShapes(polygons)
     end
 
     for index, polygon in ipairs(polygons) do
-        local polygonOutput = polygon.Output or getPrimaryOutput(polygon)
         local inputName = string.format("Input%d", index)
         local inputSocket = merge[inputName]
-
-        if polygonOutput and inputSocket then
-            inputSocket.ConnectTo(inputSocket, polygonOutput)
+        if inputSocket then
+            inputSocket.ConnectTo(inputSocket, polygon.Output)
         end
     end
 
+    -- Transform
     local transform = comp:AddTool("sTransform", 1, 1)
-
     if flow and mergePosX and mergePosY then
         flow:SetPos(transform, mergePosX + 1, mergePosY)
     end
-
-    local mergeOutput = merge.Output or getPrimaryOutput(merge)
-    local transformInput = transform.Input or transform["Input"]
     transform.Input.ConnectTo(transform.Input, merge.Output)
 
-    local transformOutput = transform.Output or getPrimaryOutput(transform)
+    -- Render
     local render = comp:AddTool("sRender", 1, 1)
-
     if flow and mergePosX and mergePosY then
         flow:SetPos(render, mergePosX + 2, mergePosY)
     end
-
-    local renderInput = render.Input or render["Input"]
-    if renderInput and transformOutput then
-        renderInput.ConnectTo(renderInput, transformOutput)
-    end
+    render.Input.ConnectTo(render.Input, transform.Output)
 end
 
 local function clonePolylineMasksBody(masks)
