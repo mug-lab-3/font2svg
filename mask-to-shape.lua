@@ -46,6 +46,9 @@ local function connectShapes(polygons)
     local transform = comp:AddTool("sTransform", baseX + offsetX, baseY)
     flow:SetPos(transform, baseX + offsetX, baseY)
     transform.Input.ConnectTo(transform.Input, merge.Output)
+    local scale = comp:GetPrefs("Comp.FrameFormat.Height") / comp:GetPrefs("Comp.FrameFormat.Width")
+    transform.XSize = scale
+    transform.YSize = scale
 
     -- Render
     offsetX = offsetX + 1
