@@ -15,36 +15,35 @@ local function getPolylineMasks()
     return masks
 end
 
-local function connectShapes(polygons)
+local function connectShapes(polygons, baseX, baseY)
     if not polygons or #polygons == 0 then return end
 
     local flow = comp.CurrentFrame.FlowView
-    local reference = polygons[1]
-    local baseX, baseY = 1, 1
-    local x, y = flow:GetPos(reference)
-    if x and y then
-        baseX, baseY = x, y
-    end
-
     local offsetX = 0
 
     -- Merge
     offsetX = offsetX + 1
     local merge = comp:AddTool("sMerge", baseX + offsetX, baseY)
-    flow:SetPos(merge, baseX + offsetX, baseY)
 
+    local verticalSpacing = 1.0
+    local columnIndex = 0
     for index, polygon in ipairs(polygons) do
-        local inputName = string.format("Input%d", index)
+        columnIndex       = columnIndex + 1
+        local offsetY     = (columnIndex - 1) * verticalSpacing
+        local inputName   = string.format("Input%d", index)
         local inputSocket = merge[inputName]
         if inputSocket then
             inputSocket.ConnectTo(inputSocket, polygon.Output)
+            flow:QueueSetPos(inputSocket, baseX, baseY + offsetY)
         end
     end
+    flow:QueueSetPos(merge, baseX + offsetX, baseY)
+
 
     -- Transform
     offsetX = offsetX + 1
     local transform = comp:AddTool("sTransform", baseX + offsetX, baseY)
-    flow:SetPos(transform, baseX + offsetX, baseY)
+    flow:QueueSetPos(transform, baseX + offsetX, baseY)
     transform.Input.ConnectTo(transform.Input, merge.Output)
     local scale = comp:GetPrefs("Comp.FrameFormat.Height") / comp:GetPrefs("Comp.FrameFormat.Width")
     transform.XSize = scale
@@ -53,7 +52,7 @@ local function connectShapes(polygons)
     -- Render
     offsetX = offsetX + 1
     local render = comp:AddTool("sRender", baseX + offsetX, baseY)
-    flow:SetPos(render, baseX + offsetX, baseY)
+    flow:QueueSetPos(render, baseX + offsetX, baseY)
     render.Input.ConnectTo(render.Input, transform.Output)
 end
 
@@ -98,7 +97,7 @@ local function clonePolylineMasksBody(masks)
         table.insert(polygons, newTool)
     end
 
-    connectShapes(polygons)
+    connectShapes(polygons, baseX, baseY)
 end
 
 
@@ -113,6 +112,7 @@ local function main()
         clonePolylineMasksBody(masks)
     end)
 
+    comp.CurrentFrame.FlowView:FlushSetPosQueue()
     comp:EndUndo(true)
     comp:Unlock()
     if comp.Refresh then comp:Refresh() end
