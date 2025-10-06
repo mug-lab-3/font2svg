@@ -19,15 +19,19 @@ local function connectShapes(polygons)
     if not polygons or #polygons == 0 then return end
 
     local flow = comp.CurrentFrame.FlowView
-    local merge = comp:AddTool("sMerge", 1, 1)
-    local mergePosX, mergePosY = nil, nil
-
     local reference = polygons[1]
+    local baseX, baseY = 1, 1
     local x, y = flow:GetPos(reference)
     if x and y then
-        mergePosX, mergePosY = x + 1, y
-        flow:SetPos(merge, mergePosX, mergePosY)
+        baseX, baseY = x, y
     end
+
+    local offsetX = 0
+
+    -- Merge
+    offsetX = offsetX + 1
+    local merge = comp:AddTool("sMerge", baseX + offsetX, baseY)
+    flow:SetPos(merge, baseX + offsetX, baseY)
 
     for index, polygon in ipairs(polygons) do
         local inputName = string.format("Input%d", index)
@@ -38,17 +42,15 @@ local function connectShapes(polygons)
     end
 
     -- Transform
-    local transform = comp:AddTool("sTransform", 1, 1)
-    if flow and mergePosX and mergePosY then
-        flow:SetPos(transform, mergePosX + 1, mergePosY)
-    end
+    offsetX = offsetX + 1
+    local transform = comp:AddTool("sTransform", baseX + offsetX, baseY)
+    flow:SetPos(transform, baseX + offsetX, baseY)
     transform.Input.ConnectTo(transform.Input, merge.Output)
 
     -- Render
-    local render = comp:AddTool("sRender", 1, 1)
-    if flow and mergePosX and mergePosY then
-        flow:SetPos(render, mergePosX + 2, mergePosY)
-    end
+    offsetX = offsetX + 1
+    local render = comp:AddTool("sRender", baseX + offsetX, baseY)
+    flow:SetPos(render, baseX + offsetX, baseY)
     render.Input.ConnectTo(render.Input, transform.Output)
 end
 
@@ -79,7 +81,7 @@ local function clonePolylineMasksBody(masks)
     for _, src in ipairs(masks) do
         columnIndex   = columnIndex + 1
         local offsetY = (columnIndex - 1) * verticalSpacing
-        local newTool = comp:AddTool("sPolygon", 1, 1)
+        local newTool = comp:AddTool("sPolygon", baseX, baseY + offsetY)
         flow:SetPos(newTool, baseX, baseY + offsetY)
 
         local settings = src:SaveSettings()
