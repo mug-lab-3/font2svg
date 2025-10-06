@@ -4,16 +4,7 @@
 
 local comp = fu:GetCurrentComp()
 
--- FlowView を安全に取る（Fusionページ以外だと nil のことがある）
-local function getFlowView()
-    if comp and comp.CurrentFrame and comp.CurrentFrame.FlowView then
-        return comp.CurrentFrame.FlowView
-    end
-    return nil
-end
-
--- 本体処理（設定読み込みで複製、ちょい右へオフセット）
-local function collectPolylineMasks()
+local function getPolylineMasks()
     local tools = comp and comp:GetToolList(false)
     local masks = {}
 
@@ -44,19 +35,18 @@ local function getPrimaryOutput(tool)
     return nil
 end
 
-local function connectPolygonsToMerge(polygons, flow)
+local function connectShapes(polygons)
     if not polygons or #polygons == 0 then return end
 
+    local flow = comp.CurrentFrame.FlowView
     local merge = comp:AddTool("sMerge", 1, 1)
     local mergePosX, mergePosY = nil, nil
 
-    if flow then
-        local reference = polygons[1]
-        local x, y = flow:GetPos(reference)
-        if x and y then
-            mergePosX, mergePosY = x + 2, y
-            flow:SetPos(merge, mergePosX, mergePosY)
-        end
+    local reference = polygons[1]
+    local x, y = flow:GetPos(reference)
+    if x and y then
+        mergePosX, mergePosY = x + 1, y
+        flow:SetPos(merge, mergePosX, mergePosY)
     end
 
     for index, polygon in ipairs(polygons) do
@@ -69,23 +59,21 @@ local function connectPolygonsToMerge(polygons, flow)
         end
     end
 
-    local mergeOutput = merge.Output or getPrimaryOutput(merge)
     local transform = comp:AddTool("sTransform", 1, 1)
 
     if flow and mergePosX and mergePosY then
-        flow:SetPos(transform, mergePosX + 2, mergePosY)
+        flow:SetPos(transform, mergePosX + 1, mergePosY)
     end
 
+    local mergeOutput = merge.Output or getPrimaryOutput(merge)
     local transformInput = transform.Input or transform["Input"]
-    if transformInput and mergeOutput then
-        transformInput.ConnectTo(transformInput, mergeOutput)
-    end
+    transform.Input.ConnectTo(transform.Input, merge.Output)
 
     local transformOutput = transform.Output or getPrimaryOutput(transform)
     local render = comp:AddTool("sRender", 1, 1)
 
     if flow and mergePosX and mergePosY then
-        flow:SetPos(render, mergePosX + 4, mergePosY)
+        flow:SetPos(render, mergePosX + 2, mergePosY)
     end
 
     local renderInput = render.Input or render["Input"]
@@ -98,12 +86,12 @@ local function clonePolylineMasksBody(masks)
     if not masks or #masks == 0 then return end
 
     local flow = comp.CurrentFrame.FlowView
-    local columnIndex = 0
+
     local baseX, baseY = nil, nil
-    local verticalSpacing = 1.5
+    local verticalSpacing = 1.0
     local polygons = {}
 
-    local posOffsetX = 1.1
+    local posOffsetX = 1
     local parent = masks[1].ParentTool
     if parent then
         local px, py = flow:GetPos(parent)
@@ -117,38 +105,30 @@ local function clonePolylineMasksBody(masks)
         end
     end
 
+    local columnIndex = 0
     for _, src in ipairs(masks) do
-        local settings = src:SaveSettings()
-        local newTool  = comp:AddTool("sPolygon", 1, 1)
-        newTool:LoadSettings(settings)
+        columnIndex   = columnIndex + 1
+        local offsetY = (columnIndex - 1) * verticalSpacing
+        local newTool = comp:AddTool("sPolygon", 1, 1)
+        flow:SetPos(newTool, baseX, baseY + offsetY)
 
+        local settings = src:SaveSettings()
+        newTool:LoadSettings(settings)
         if newTool.Center then
             newTool.Center = { 0, 0 }
         end
 
+        newTool:SetAttrs({ TOOLS_Name = "s" .. src.Name })
+
         table.insert(polygons, newTool)
-
-        if flow then
-            if baseX and baseY then
-                columnIndex = columnIndex + 1
-                local offsetY = (columnIndex - 1) * verticalSpacing
-                flow:SetPos(newTool, baseX, baseY + offsetY)
-            end
-        end
-
-        -- 任意：色など軽いメタ継承
-        local a = src:GetAttrs()
-        if a.TOOLNC_Color then
-            newTool:SetAttrs({ TOOLNC_Color = a.TOOLNC_Color })
-        end
     end
 
-    connectPolygonsToMerge(polygons, flow)
+    connectShapes(polygons)
 end
 
--- 実行エントリ（pcallで挟み、Lock/Unlockで囲む）
-local function run()
-    local masks = collectPolylineMasks()
+
+local function main()
+    local masks = getPolylineMasks()
     if #masks == 0 then return end
 
     comp:Lock()
@@ -163,9 +143,8 @@ local function run()
     if comp.Refresh then comp:Refresh() end
 
     if not ok then
-        -- トレースを付けて再throw
         error(debug.traceback(err, 2))
     end
 end
 
-run()
+main()
