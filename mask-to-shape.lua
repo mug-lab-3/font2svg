@@ -1,14 +1,29 @@
 local comp = fu:GetCurrentComp()
 
+local function collectPolylineMasksFromTool(tool, masks)
+    if not tool then return end
+    if tool.ID == "PolylineMask" then
+        table.insert(masks, tool)
+    end
+    local children = tool:GetChildrenList()
+    if not children then return end
+    for _, child in pairs(children) do
+        collectPolylineMasksFromTool(child, masks)
+    end
+end
+
 local function getPolylineMasks()
     local tools = comp and comp:GetToolList(false)
     local masks = {}
-
     if not tools then return masks end
 
-    for _, tool in pairs(tools) do
-        if tool and tool.ID == "PolylineMask" then
-            table.insert(masks, tool)
+    if comp.ActiveTool ~= nil then
+        collectPolylineMasksFromTool(comp.ActiveTool, masks)
+    else
+        for _, tool in pairs(tools) do
+            if tool.ID == "PolylineMask" then
+                table.insert(masks, tool)
+            end
         end
     end
 
