@@ -36,9 +36,12 @@ local function connectShapes(polygons,width, height, baseX, baseY)
     local flow = comp.CurrentFrame.FlowView
     local offsetX = 0
 
+    flow:Select()
+
     -- Merge
     offsetX = offsetX + 1
     local merge = comp:AddTool("sMerge", baseX + offsetX, baseY)
+    flow:Select(merge, true)
 
     local verticalSpacing = 1.0
     local columnIndex = 0
@@ -51,6 +54,7 @@ local function connectShapes(polygons,width, height, baseX, baseY)
             inputSocket.ConnectTo(inputSocket, polygon.Output)
             flow:QueueSetPos(inputSocket, baseX, baseY + offsetY)
         end
+        flow:Select(polygon, true)
     end
     flow:QueueSetPos(merge, baseX + offsetX, baseY)
 
@@ -62,12 +66,14 @@ local function connectShapes(polygons,width, height, baseX, baseY)
     local scale = comp:GetPrefs("Comp.FrameFormat.Height") / comp:GetPrefs("Comp.FrameFormat.Width")
     transform.XSize = scale
     transform.YSize = scale * (height / width)
+    flow:Select(transform, true)
 
     -- Render
     offsetX = offsetX + 1
     local render = comp:AddTool("sRender", baseX + offsetX, baseY)
     flow:QueueSetPos(render, baseX + offsetX, baseY)
     render.Input.ConnectTo(render.Input, transform.Output)
+    flow:Select(render, true)
 end
 
 local function clonePolylineMasksBody(masks)
@@ -97,6 +103,7 @@ local function clonePolylineMasksBody(masks)
             baseX, baseY = px + posOffsetX, py
         end
     end
+
 
     local columnIndex = 0
     for _, src in ipairs(masks) do
