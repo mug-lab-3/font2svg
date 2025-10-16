@@ -30,7 +30,7 @@ local function getPolylineMasks()
     return masks
 end
 
-local function connectShapes(polygons, baseX, baseY)
+local function connectShapes(polygons,width, height, baseX, baseY)
     if not polygons or #polygons == 0 then return end
 
     local flow = comp.CurrentFrame.FlowView
@@ -54,7 +54,6 @@ local function connectShapes(polygons, baseX, baseY)
     end
     flow:QueueSetPos(merge, baseX + offsetX, baseY)
 
-
     -- Transform
     offsetX = offsetX + 1
     local transform = comp:AddTool("sTransform", baseX + offsetX, baseY)
@@ -62,7 +61,7 @@ local function connectShapes(polygons, baseX, baseY)
     transform.Input.ConnectTo(transform.Input, merge.Output)
     local scale = comp:GetPrefs("Comp.FrameFormat.Height") / comp:GetPrefs("Comp.FrameFormat.Width")
     transform.XSize = scale
-    transform.YSize = scale
+    transform.YSize = scale * (height / width)
 
     -- Render
     offsetX = offsetX + 1
@@ -82,11 +81,16 @@ local function clonePolylineMasksBody(masks)
 
     local posOffsetX = 1
     local parent = masks[1].ParentTool
+    local outputWidth = masks[1]:GetAttrs("TOOLI_ImageWidth")
+    local outputHeight = masks[1]:GetAttrs("TOOLI_ImageHeight")
+
     if parent then
         local px, py = flow:GetPos(parent)
         if px and py then
             baseX, baseY = px + posOffsetX, py
         end
+        local outputWidth = parent:GetAttrs("TOOLI_ImageWidth")
+        local outputHeight = parent:GetAttrs("TOOLI_ImageHeight")
     else
         local px, py = flow:GetPos(masks[1])
         if px and py then
@@ -112,7 +116,7 @@ local function clonePolylineMasksBody(masks)
         table.insert(polygons, newTool)
     end
 
-    connectShapes(polygons, baseX, baseY)
+    connectShapes(polygons,outputWidth, outputHeight, baseX, baseY)
 end
 
 
