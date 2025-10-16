@@ -63,7 +63,10 @@ local function connectShapes(polygons,width, height, baseX, baseY)
     local transform = comp:AddTool("sTransform", baseX + offsetX, baseY)
     flow:QueueSetPos(transform, baseX + offsetX, baseY)
     transform.Input.ConnectTo(transform.Input, merge.Output)
-    local scale = comp:GetPrefs("Comp.FrameFormat.Height") / comp:GetPrefs("Comp.FrameFormat.Width")
+    local scale = math.min(
+        comp:GetPrefs("Comp.FrameFormat.Height") / comp:GetPrefs("Comp.FrameFormat.Width"),
+        comp:GetPrefs("Comp.FrameFormat.Width") / comp:GetPrefs("Comp.FrameFormat.Height")
+    )
     transform.XSize = scale
     transform.YSize = scale * (height / width)
     flow:Select(transform, true)
