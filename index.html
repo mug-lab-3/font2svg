@@ -2735,7 +2735,7 @@ html.unsupported #unsupportedMsg::before { content:'⚠ '; font-size:1.2rem; }`;
         }
 
         const style = (mode === 'solid') ? `fill: ${color};` : `fill: none; stroke: ${color}; stroke-width: ${strokeWidth};`;
-        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${pathData}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n  <g style="${style}">\n    <path d="${pathData}" transform="translate(${tx},${ty})"/>\n  </g>\n</svg>`;
         return svg;
       }
 
