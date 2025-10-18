@@ -98,15 +98,12 @@ local function clonePolylineMasksBody(masks)
         if px and py then
             baseX, baseY = px + posOffsetX, py
         end
-        local outputWidth = parent:GetAttrs("TOOLI_ImageWidth")
-        local outputHeight = parent:GetAttrs("TOOLI_ImageHeight")
     else
         local px, py = flow:GetPos(masks[1])
         if px and py then
             baseX, baseY = px + posOffsetX, py
         end
     end
-
 
     local columnIndex = 0
     for _, src in ipairs(masks) do
