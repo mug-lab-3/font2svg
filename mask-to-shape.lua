@@ -68,7 +68,11 @@ local function connectShapes(polygons,width, height, baseX, baseY)
         comp:GetPrefs("Comp.FrameFormat.Width") / comp:GetPrefs("Comp.FrameFormat.Height")
     )
     transform.XSize = scale
-    transform.YSize = scale * (height / width)
+    if (height ~= nil and width ~= nil) then
+        transform.YSize = scale * (height / width)
+    else 
+        transform.YSize = scale
+    end
     flow:Select(transform, true)
 
     -- Render
